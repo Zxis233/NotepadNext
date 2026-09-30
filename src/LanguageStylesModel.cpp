@@ -45,26 +45,26 @@ QString val_to_case_str(int val) {
     return QString();
 }
 
-QStringList columns{
-    "ID",
-    "Name",
-    "Tags",
-    "Description",
-    "Font",
-    "Size",
-    "Fractional",
-    "Bold",
-    "Weight",
-    "Italic",
-    "Underline",
-    "Fore",
-    "Back",
-    "EOL Filled",
-    "Character Set",
-    "Case",
-    "Visible",
-    "Changeable",
-    "Hotspot",
+const QList<const char *> columns{
+    QT_TRANSLATE_NOOP("LanguageStylesModel", "ID"),
+    QT_TRANSLATE_NOOP("LanguageStylesModel", "Name"),
+    QT_TRANSLATE_NOOP("LanguageStylesModel", "Tags"),
+    QT_TRANSLATE_NOOP("LanguageStylesModel", "Description"),
+    QT_TRANSLATE_NOOP("LanguageStylesModel", "Font"),
+    QT_TRANSLATE_NOOP("LanguageStylesModel", "Size"),
+    QT_TRANSLATE_NOOP("LanguageStylesModel", "Fractional"),
+    QT_TRANSLATE_NOOP("LanguageStylesModel", "Bold"),
+    QT_TRANSLATE_NOOP("LanguageStylesModel", "Weight"),
+    QT_TRANSLATE_NOOP("LanguageStylesModel", "Italic"),
+    QT_TRANSLATE_NOOP("LanguageStylesModel", "Underline"),
+    QT_TRANSLATE_NOOP("LanguageStylesModel", "Fore"),
+    QT_TRANSLATE_NOOP("LanguageStylesModel", "Back"),
+    QT_TRANSLATE_NOOP("LanguageStylesModel", "EOL Filled"),
+    QT_TRANSLATE_NOOP("LanguageStylesModel", "Character Set"),
+    QT_TRANSLATE_NOOP("LanguageStylesModel", "Case"),
+    QT_TRANSLATE_NOOP("LanguageStylesModel", "Visible"),
+    QT_TRANSLATE_NOOP("LanguageStylesModel", "Changeable"),
+    QT_TRANSLATE_NOOP("LanguageStylesModel", "Hotspot"),
 };
 
 LanguageStylesModel::LanguageStylesModel(ScintillaNext *editor, QObject *parent)
@@ -76,7 +76,7 @@ QVariant LanguageStylesModel::headerData(int section, Qt::Orientation orientatio
 {
     if (role == Qt::DisplayRole) {
         if (orientation == Qt::Horizontal) {
-            return columns[section];
+            return tr(columns[section]);
         }
     }
 
@@ -122,22 +122,22 @@ QVariant LanguageStylesModel::data(const QModelIndex &index, int role) const
                 return (int)editor->styleSizeFractional(index.row());
             case 7: // Bold
                 if (role == Qt::EditRole) return editor->styleBold(index.row());
-                else return editor->styleBold(index.row()) ? "True" : "False";
+                else return editor->styleBold(index.row()) ? tr("True") : tr("False");
             case 8: // Weight
                 return (int)editor->styleWeight(index.row());
             case 9: // Italic
                 if (role == Qt::EditRole) return editor->styleItalic(index.row());
-                else return editor->styleItalic(index.row()) ? "True" : "False";
+                else return editor->styleItalic(index.row()) ? tr("True") : tr("False");
             case 10: // Underline
                 if (role == Qt::EditRole) return editor->styleUnderline(index.row());
-                else return editor->styleUnderline(index.row()) ? "True" : "False";
+                else return editor->styleUnderline(index.row()) ? tr("True") : tr("False");
             case 11: // Fore
                 return QColor(convert_color(editor->styleFore(index.row())));
             case 12: // Back
                 return QColor(convert_color(editor->styleBack(index.row())));
             case 13: // EOL Filled
                 if (role == Qt::EditRole) return editor->styleEOLFilled(index.row());
-                else return editor->styleEOLFilled(index.row()) ? "True" : "False";
+                else return editor->styleEOLFilled(index.row()) ? tr("True") : tr("False");
             case 14: // Character Set
                 return (int)editor->styleCharacterSet(index.row());
             case 15: // Case
@@ -145,13 +145,13 @@ QVariant LanguageStylesModel::data(const QModelIndex &index, int role) const
                 else return val_to_case_str(editor->styleCase(index.row()));
             case 16: // Visible
                 if (role == Qt::EditRole) return editor->styleVisible(index.row());
-                else return editor->styleVisible(index.row()) ? "True" : "False";
+                else return editor->styleVisible(index.row()) ? tr("True") : tr("False");
             case 17: // Changeable
                 if (role == Qt::EditRole) return editor->styleChangeable(index.row());
-                else return editor->styleChangeable(index.row()) ? "True" : "False";
+                else return editor->styleChangeable(index.row()) ? tr("True") : tr("False");
             case 18: // Hotspot
                 if (role == Qt::EditRole) return editor->styleHotSpot(index.row());
-                else return editor->styleHotSpot(index.row()) ? "True" : "False";
+                else return editor->styleHotSpot(index.row()) ? tr("True") : tr("False");
             default:
                 break;
         }

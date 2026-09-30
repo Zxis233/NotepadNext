@@ -216,10 +216,10 @@ void SearchResultsDock::itemExpanded(QTreeWidgetItem *)
 
 void SearchResultsDock::updateSearchStatus()
 {
-    currentSearch->setText(0, QStringLiteral("Search \"%1\" (%L2 hits in %L3 files)").arg(searchTerm).arg(totalHitCount).arg(currentFileCount));
+    currentSearch->setText(0, tr("Search \"%1\" (%L2 hits in %L3 files)").arg(searchTerm).arg(totalHitCount).arg(currentFileCount));
 
     if (currentFile)
-        currentFile->setText(0, QStringLiteral("%1 (%L2 hits)").arg(currentFilePath).arg(totalFileHitCount));
+        currentFile->setText(0, tr("%1 (%L2 hits)").arg(currentFilePath).arg(totalFileHitCount));
 }
 
 void SearchResultsDock::copyAllSearchResultsToClipboard()

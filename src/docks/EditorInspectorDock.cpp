@@ -23,7 +23,7 @@
 
 
 static inline QString toBool(int b) {
-    return b ? QStringLiteral("True") : QStringLiteral("False");
+    return b ? EditorInspectorDock::tr("True") : EditorInspectorDock::tr("False");
 }
 
 EditorInspectorDock::EditorInspectorDock(MainWindow *parent) :
