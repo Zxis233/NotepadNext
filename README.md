@@ -66,11 +66,16 @@ A restart is required for this to take effect.
 
 # Appearance
 
-To enable dark mode, open **Settings > Preferences** and select **Dark mode**.
-The change takes effect immediately and is remembered across restarts. It covers
-the application interface, document syntax colors, and Lua console. Uncheck the
-option to restore the original colors. A user-provided `custom.css` can override
-the application interface colors.
+Open **Settings > Preferences > Theme** and choose **Follow system**, **Light**,
+or **Dark**. New installations follow the system by default. An explicitly saved
+choice from the older Dark mode checkbox is preserved as Light or Dark.
+
+Changes take effect immediately across all document tabs and the Lua console,
+and the selected mode is remembered across restarts. Follow system also reacts
+to system appearance changes while the application is running on Qt 6.5 or later
+when the platform reports them. On older Qt versions or platforms that do not
+report a color scheme, the initial system palette provides the fallback.
+A user-provided `custom.css` can override the application interface colors.
 
 # File encodings
 

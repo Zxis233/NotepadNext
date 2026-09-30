@@ -3,6 +3,7 @@
 
 #include <QColor>
 #include <QVariant>
+#include <QPalette>
 
 namespace {
 constexpr auto savedColors = "nn_lightColors";
@@ -22,6 +23,39 @@ int readableForeground(int bgr)
         color.setHslF(color.hslHueF(), color.hslSaturationF(), 0.72);
     return color.red() | (color.green() << 8) | (color.blue() << 16);
 }
+}
+
+QPalette Theme::applicationPalette(bool dark)
+{
+    // Build both palettes independently of the system's current appearance.
+    // A palette captured at startup is not necessarily a light palette.
+    QPalette colors(QColor(dark ? "#353535" : "#f0f0f0"));
+    colors.setColor(QPalette::Window, QColor(dark ? "#292929" : "#f0f0f0"));
+    colors.setColor(QPalette::WindowText, QColor(dark ? "#e0e0e0" : "#000000"));
+    colors.setColor(QPalette::Base, QColor(dark ? "#202020" : "#ffffff"));
+    colors.setColor(QPalette::AlternateBase, QColor(dark ? "#303030" : "#f7f7f7"));
+    colors.setColor(QPalette::Text, QColor(dark ? "#e0e0e0" : "#000000"));
+    colors.setColor(QPalette::Button, QColor(dark ? "#353535" : "#f0f0f0"));
+    colors.setColor(QPalette::ButtonText, QColor(dark ? "#e0e0e0" : "#000000"));
+    colors.setColor(QPalette::ToolTipBase, QColor(dark ? "#303030" : "#ffffdc"));
+    colors.setColor(QPalette::ToolTipText, QColor(dark ? "#e0e0e0" : "#000000"));
+    colors.setColor(QPalette::Highlight, QColor(dark ? "#305080" : "#308cc6"));
+    colors.setColor(QPalette::HighlightedText, Qt::white);
+    colors.setColor(QPalette::Link, QColor(dark ? "#80bfff" : "#0000ff"));
+    colors.setColor(QPalette::LinkVisited, QColor(dark ? "#c090e0" : "#800080"));
+    colors.setColor(QPalette::BrightText, Qt::red);
+    colors.setColor(QPalette::PlaceholderText, QColor(dark ? "#a0a0a0" : "#767676"));
+    colors.setColor(QPalette::Light, QColor(dark ? "#606060" : "#ffffff"));
+    colors.setColor(QPalette::Midlight, QColor(dark ? "#454545" : "#e3e3e3"));
+    colors.setColor(QPalette::Mid, QColor(dark ? "#404040" : "#a0a0a0"));
+    colors.setColor(QPalette::Dark, QColor(dark ? "#181818" : "#808080"));
+    colors.setColor(QPalette::Shadow, QColor(dark ? "#101010" : "#696969"));
+    for (auto role : {QPalette::WindowText, QPalette::Text, QPalette::ButtonText})
+        colors.setColor(QPalette::Disabled, role, QColor("#808080"));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
+    colors.setColor(QPalette::Accent, colors.color(QPalette::Highlight));
+#endif
+    return colors;
 }
 
 void Theme::setEditorDark(ScintillaNext *editor, bool dark)

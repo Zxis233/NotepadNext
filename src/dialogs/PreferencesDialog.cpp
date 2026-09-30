@@ -26,6 +26,7 @@
 #include <QButtonGroup>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QSignalBlocker>
 
 
 PreferencesDialog::PreferencesDialog(ApplicationSettings *settings, QWidget *parent) :
@@ -34,7 +35,18 @@ PreferencesDialog::PreferencesDialog(ApplicationSettings *settings, QWidget *par
     settings(settings)
 {
     ui->setupUi(this);
-    MapSettingToCheckBox(ui->checkBoxDarkMode, &ApplicationSettings::darkMode, &ApplicationSettings::setDarkMode, &ApplicationSettings::darkModeChanged);
+    ui->comboBoxTheme->addItem(tr("Follow system"), ApplicationSettings::FollowSystem);
+    ui->comboBoxTheme->addItem(tr("Light"), ApplicationSettings::LightTheme);
+    ui->comboBoxTheme->addItem(tr("Dark"), ApplicationSettings::DarkTheme);
+    ui->comboBoxTheme->setCurrentIndex(ui->comboBoxTheme->findData(settings->themeMode()));
+    connect(ui->comboBoxTheme, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int index) {
+        if (index >= 0)
+            this->settings->setThemeMode(static_cast<ApplicationSettings::ThemeMode>(ui->comboBoxTheme->itemData(index).toInt()));
+    });
+    connect(settings, &ApplicationSettings::themeModeChanged, this, [this](ApplicationSettings::ThemeMode mode) {
+        const QSignalBlocker blocker(ui->comboBoxTheme);
+        ui->comboBoxTheme->setCurrentIndex(ui->comboBoxTheme->findData(mode));
+    });
 
     QIcon icon = style()->standardIcon(QStyle::SP_MessageBoxInformation);
     QPixmap pixmap = icon.pixmap(QSize(16, 16));

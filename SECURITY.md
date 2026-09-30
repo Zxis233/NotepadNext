@@ -6,3 +6,4 @@ Please report any vulnerabilities on the Notepad Next GitHub [security tab](http
 
 > [!NOTE]  
 > Only the latest release of the application is supported. Old versions will not be patched.
+²âÊÔÒ»ÏÂ

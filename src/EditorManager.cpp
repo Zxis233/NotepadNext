@@ -19,6 +19,7 @@
 #include <QApplication>
 
 #include "ApplicationSettings.h"
+#include "NotepadNextApplication.h"
 
 #include "EditorManager.h"
 #include "Theme.h"
@@ -183,7 +184,7 @@ void EditorManager::manageEditor(ScintillaNext *editor)
     editors.append(QPointer<ScintillaNext>(editor));
 
     setupEditor(editor);
-    Theme::setEditorDark(editor, settings->darkMode());
+    Theme::setEditorDark(editor, static_cast<NotepadNextApplication *>(qApp)->isDarkTheme());
 
     emit editorCreated(editor);
 }

@@ -56,6 +56,7 @@ public:
     QString getFileDialogFilter() const;
     QString getFileDialogFilterForLanguage(const QString &language) const;
     ApplicationSettings *getSettings() const { return settings; }
+    bool isDarkTheme() const { return darkTheme; }
 
     QStringList getLanguages() const;
     void setEditorLanguage(ScintillaNext *editor, const QString &languageName) const;
@@ -83,6 +84,11 @@ private:
     void openFiles(const QStringList &files);
 
     void loadSettings();
+    void initializeTheme();
+    void updateTheme();
+
+    bool darkTheme = false;
+    bool systemDarkTheme = false;
 
     EditorManager *editorManager;
     RecentFilesListManager *recentFilesListManager;

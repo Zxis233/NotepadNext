@@ -76,6 +76,14 @@ public:
     };
     Q_ENUM(DefaultDirectoryBehaviorEnum)
 
+    // Persisted values: keep these stable across releases.
+    enum ThemeMode {
+        FollowSystem = 0,
+        LightTheme = 1,
+        DarkTheme = 2
+    };
+    Q_ENUM(ThemeMode)
+
     template <typename T>
     T get(const char *key, const T &defaultValue) const
     { return value(QLatin1String(key), defaultValue).template value<T>(); }
@@ -89,7 +97,7 @@ public:
     { setValue(QLatin1String(setting.key()), value); }
 
     DEFINE_SETTING(ShowMenuBar, showMenuBar, bool)
-    DEFINE_SETTING(DarkMode, darkMode, bool)
+    DEFINE_SETTING(ThemeMode, themeMode, ThemeMode)
     DEFINE_SETTING(ShowToolBar, showToolBar, bool)
     DEFINE_SETTING(ShowTabBar, showTabBar, bool)
     DEFINE_SETTING(ShowStatusBar, showStatusBar, bool)

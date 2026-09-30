@@ -38,10 +38,30 @@ ApplicationSetting<type> name{#group "/" #name, default};\
 ApplicationSettings::ApplicationSettings(QObject *parent)
     : QSettings{parent}
 {
+    // Only migrate an explicitly saved choice. A fresh installation follows
+    // the system; the old implicit false default was not a user preference.
+    if (!contains(QStringLiteral("Gui/ThemeMode")) && contains(QStringLiteral("Gui/DarkMode"))) {
+        setValue(QStringLiteral("Gui/ThemeMode"),
+                 static_cast<int>(value(QStringLiteral("Gui/DarkMode")).toBool() ? DarkTheme : LightTheme));
+    }
+}
+
+ApplicationSettings::ThemeMode ApplicationSettings::themeMode() const
+{
+    bool ok = false;
+    const int mode = value(QStringLiteral("Gui/ThemeMode"), static_cast<int>(FollowSystem)).toInt(&ok);
+    return ok && mode >= FollowSystem && mode <= DarkTheme ? static_cast<ThemeMode>(mode) : FollowSystem;
+}
+
+void ApplicationSettings::setThemeMode(ThemeMode mode)
+{
+    if (mode < FollowSystem || mode > DarkTheme || mode == themeMode())
+        return;
+    setValue(QStringLiteral("Gui/ThemeMode"), static_cast<int>(mode));
+    emit themeModeChanged(mode);
 }
 
 CREATE_SETTING(Gui, ShowMenuBar, showMenuBar, bool, true)
-CREATE_SETTING(Gui, DarkMode, darkMode, bool, false)
 CREATE_SETTING(Gui, ShowToolBar, showToolBar, bool, true)
 CREATE_SETTING(Gui, ShowTabBar, showTabBar, bool, true)
 CREATE_SETTING(Gui, ShowStatusBar, showStatusBar, bool, true)

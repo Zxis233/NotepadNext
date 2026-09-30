@@ -30,11 +30,21 @@
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_4">
        <item>
-        <widget class="QCheckBox" name="checkBoxDarkMode">
-         <property name="text">
-          <string>Dark mode</string>
-         </property>
-        </widget>
+        <layout class="QHBoxLayout" name="themeLayout">
+         <item>
+          <widget class="QLabel" name="labelTheme">
+           <property name="text">
+            <string>Theme:</string>
+           </property>
+           <property name="buddy">
+            <cstring>comboBoxTheme</cstring>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="comboBoxTheme"/>
+         </item>
+        </layout>
        </item>
        <item>
         <layout class="QVBoxLayout" name="verticalLayout_2">

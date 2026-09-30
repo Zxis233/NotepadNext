@@ -32,6 +32,7 @@
 #include <QStyle>
 #include <QStyleFactory>
 #include <QPalette>
+#include <QStyleHints>
 
 #include "LuaState.h"
 #include "lua.hpp"
@@ -110,41 +111,7 @@ bool NotepadNextApplication::init()
         settings->clear();
     }
 
-    const QPalette lightPalette = palette();
-    const QString lightStyle = style()->objectName();
-    auto applyTheme = [this, lightPalette, lightStyle](bool dark) {
-        if (QStyle *themeStyle = QStyleFactory::create(dark ? QStringLiteral("Fusion") : lightStyle))
-            setStyle(themeStyle);
-        QPalette colors = lightPalette;
-        if (dark) {
-            colors.setColor(QPalette::Window, QColor("#292929"));
-            colors.setColor(QPalette::WindowText, QColor("#e0e0e0"));
-            colors.setColor(QPalette::Base, QColor("#202020"));
-            colors.setColor(QPalette::AlternateBase, QColor("#303030"));
-            colors.setColor(QPalette::Text, QColor("#e0e0e0"));
-            colors.setColor(QPalette::Button, QColor("#353535"));
-            colors.setColor(QPalette::ButtonText, QColor("#e0e0e0"));
-            colors.setColor(QPalette::ToolTipBase, QColor("#303030"));
-            colors.setColor(QPalette::ToolTipText, QColor("#e0e0e0"));
-            colors.setColor(QPalette::Highlight, QColor("#305080"));
-            colors.setColor(QPalette::HighlightedText, Qt::white);
-            colors.setColor(QPalette::Link, QColor("#80bfff"));
-            colors.setColor(QPalette::Light, QColor("#606060"));
-            colors.setColor(QPalette::Midlight, QColor("#454545"));
-            colors.setColor(QPalette::Mid, QColor("#404040"));
-            colors.setColor(QPalette::Dark, QColor("#181818"));
-            for (auto role : {QPalette::WindowText, QPalette::Text, QPalette::ButtonText})
-                colors.setColor(QPalette::Disabled, role, QColor("#808080"));
-        }
-        setPalette(colors);
-        for (QWidget *widget : allWidgets()) {
-            if (auto editor = qobject_cast<ScintillaNext *>(widget))
-                Theme::setEditorDark(editor, dark);
-        }
-    };
-    connect(settings, &ApplicationSettings::darkModeChanged, this, applyTheme);
-    if (settings->darkMode())
-        applyTheme(true);
+    initializeTheme();
 
     // Translation files are stored as a qresource
     translationManager = new TranslationManager(this, QStringLiteral(":/i18n/"));
@@ -299,6 +266,47 @@ QString NotepadNextApplication::getFileDialogFilterForLanguage(const QString &la
     return getLuaState()->executeAndReturn<QString>("return FilterForLanguage(langForFilter)");
 }
 
+void NotepadNextApplication::initializeTheme()
+{
+    // Capture a fallback before applying our own palette. Never infer the
+    // system preference from the palette after we have overridden it.
+    systemDarkTheme = palette().color(QPalette::Window).lightness() < 128;
+    // Fusion honors both explicit palettes, including forced light mode when
+    // the native platform style is dark. Keep the same style during toggles.
+    if (QStyle *themeStyle = QStyleFactory::create(QStringLiteral("Fusion")))
+        setStyle(themeStyle);
+
+    connect(settings, &ApplicationSettings::themeModeChanged, this, &NotepadNextApplication::updateTheme);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+    connect(styleHints(), &QStyleHints::colorSchemeChanged, this, [this]() {
+        // The signal precedes Qt's palette update. Run after that update and
+        // read the latest preference, including any manual override selected
+        // while a system-theme notification was queued.
+        updateTheme();
+    }, Qt::QueuedConnection);
+#endif
+    updateTheme();
+}
+
+void NotepadNextApplication::updateTheme()
+{
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+    switch (styleHints()->colorScheme()) {
+    case Qt::ColorScheme::Dark: systemDarkTheme = true; break;
+    case Qt::ColorScheme::Light: systemDarkTheme = false; break;
+    default: break; // Unknown: retain the last known system preference.
+    }
+#endif
+    const auto mode = settings->themeMode();
+    darkTheme = mode == ApplicationSettings::DarkTheme ||
+                (mode == ApplicationSettings::FollowSystem && systemDarkTheme);
+    setPalette(Theme::applicationPalette(darkTheme));
+    for (QWidget *widget : allWidgets()) {
+        if (auto editor = qobject_cast<ScintillaNext *>(widget))
+            Theme::setEditorDark(editor, darkTheme);
+    }
+}
+
 QStringList NotepadNextApplication::getLanguages() const
 {
     return getLuaState()->executeAndReturn<QStringList>(
@@ -337,7 +345,7 @@ void NotepadNextApplication::setEditorLanguage(ScintillaNext *editor, const QStr
     getLuaState()->setVariable("skip_tabwidth", skipTabWidth);
 
     getLuaState()->execute("SetLanguage(languageName)");
-    Theme::setEditorDark(editor, settings->darkMode());
+    Theme::setEditorDark(editor, isDarkTheme());
 }
 
 QStringList NotepadNextApplication::getLanguageKeywords(const QString &languageName) const

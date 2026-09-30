@@ -186,7 +186,7 @@ LuaConsoleDock::LuaConsoleDock(LuaState *l, QWidget *parent) :
     setupStyle(output);
 
     output->styleSetFore(39, 0x0000FF); // For error messages
-    const bool dark = static_cast<NotepadNextApplication *>(qApp)->getSettings()->darkMode();
+    const bool dark = static_cast<NotepadNextApplication *>(qApp)->isDarkTheme();
     Theme::setEditorDark(input, dark);
     Theme::setEditorDark(output, dark);
 
