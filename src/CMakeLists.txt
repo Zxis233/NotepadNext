@@ -5,6 +5,8 @@ qt_add_executable(NotepadNext
 	ApplicationSettings.h
 	FileEncoding.h
 	FileEncoding.cpp
+	FileEncodingHistory.h
+	FileEncodingHistory.cpp
 		Theme.h
 		Theme.cpp
 	ByteArrayUtils.h

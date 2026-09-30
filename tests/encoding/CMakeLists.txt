@@ -11,3 +11,9 @@ add_executable(FileEncodingTest FileEncodingTest.cpp ../../src/FileEncoding.cpp)
 target_include_directories(FileEncodingTest PRIVATE ../../src)
 target_link_libraries(FileEncodingTest PRIVATE Qt6::Core Qt6::Core5Compat Qt6::Test)
 add_test(NAME FileEncodingTest COMMAND FileEncodingTest)
+
+add_executable(FileEncodingHistoryTest FileEncodingHistoryTest.cpp
+    ../../src/FileEncodingHistory.cpp ../../src/FileEncoding.cpp)
+target_include_directories(FileEncodingHistoryTest PRIVATE ../../src)
+target_link_libraries(FileEncodingHistoryTest PRIVATE Qt6::Core Qt6::Core5Compat Qt6::Test)
+add_test(NAME FileEncodingHistoryTest COMMAND FileEncodingHistoryTest)

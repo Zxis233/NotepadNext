@@ -282,7 +282,8 @@ ScintillaNext* SessionManager::loadFileDetails(QSettings &settings)
     if (QFileInfo::exists(filePath)) {
         const auto encoding = sessionEncoding(settings, "Encoding", FileEncoding::Auto);
         editor = ScintillaNext::fromFile(filePath, false,
-                                       encoding == FileEncoding::Utf8 ? FileEncoding::Auto : encoding);
+                                       encoding == FileEncoding::Utf8 ? FileEncoding::Auto : encoding,
+                                       encoding == FileEncoding::Auto);
 
         if (editor == Q_NULLPTR) {
             qWarning("  could not be read from disk, ignoring this file for session loading");
@@ -335,7 +336,7 @@ ScintillaNext *SessionManager::loadUnsavedFileDetails(QSettings &settings)
     if (QFileInfo::exists(filePath) && QFileInfo::exists(sessionFilePath)) {
         ScintillaNext *editor = settings.value("SnapshotFormat").toString() == QStringLiteral("InternalUtf8")
             ? ScintillaNext::fromSessionFile(sessionFilePath)
-            : ScintillaNext::fromFile(sessionFilePath);
+            : ScintillaNext::fromFile(sessionFilePath, false, FileEncoding::Auto, false);
 
         if (editor == Q_NULLPTR) {
             qWarning("  could not be read from disk, ignoring this file for session loading");
@@ -390,7 +391,7 @@ ScintillaNext *SessionManager::loadTempFile(QSettings &settings)
     if (QFileInfo::exists(fullFilePath)) {
         ScintillaNext *editor = settings.value("SnapshotFormat").toString() == QStringLiteral("InternalUtf8")
             ? ScintillaNext::fromSessionFile(fullFilePath)
-            : ScintillaNext::fromFile(fullFilePath, false);
+            : ScintillaNext::fromFile(fullFilePath, false, FileEncoding::Auto, false);
 
         if (editor == Q_NULLPTR) {
             qWarning("  could not be read from disk, ignoring this file for session loading");

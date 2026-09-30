@@ -97,10 +97,20 @@ the menu selection and status bar.
   Characters that cannot be represented without loss cause an error instead
   of being replaced with question marks.
 
-Files without a BOM initially use UTF-8; GBK and Shift_JIS are selected manually.
+The encoding used to successfully reopen or save a file is remembered by its
+full path, even after closing the file or restarting the application. Different
+files with the same name keep separate choices. Save As, Save a Copy As, and
+Rename also remember the encoding for the destination file. Selecting a
+conversion without saving does not change the remembered on-disk encoding.
+
+A Unicode BOM takes precedence over the remembered choice. Without a BOM or a
+remembered choice, files initially use UTF-8. If a remembered codec can no longer
+decode a changed file, opening falls back to the default behavior so another
+encoding can be selected manually.
 If the input is not valid UTF-8, its bytes are retained for reopening and saving
 is blocked until the original encoding is selected. Session restoration keeps
-each document's encoding and any pending encoding change.
+each document's encoding and any pending encoding change; session snapshots
+are decoded independently of this history.
 
 # Translations
 

@@ -18,6 +18,7 @@
 
 
 #include "ScintillaNext.h"
+#include "FileEncodingHistory.h"
 #include "Finder.h"
 #include "ScintillaCommenter.h"
 
@@ -80,7 +81,8 @@ ScintillaNext::~ScintillaNext()
 {
 }
 
-ScintillaNext *ScintillaNext::fromFile(const QString &filePath, bool tryToCreate, FileEncoding::Type encoding)
+ScintillaNext *ScintillaNext::fromFile(const QString &filePath, bool tryToCreate,
+                                     FileEncoding::Type encoding, bool useEncodingHistory)
 {
     QFile file(filePath);
     ScintillaNext *editor = new ScintillaNext(file.fileName());
@@ -95,7 +97,23 @@ ScintillaNext *ScintillaNext::fromFile(const QString &filePath, bool tryToCreate
         f.close();
     }
 
-    bool readSuccessful = editor->readFromDisk(file, encoding);
+    const auto remembered = encoding == FileEncoding::Auto && useEncodingHistory
+        ? FileEncodingHistory::lookup(filePath) : FileEncoding::Auto;
+    bool readSuccessful = editor->readFromDisk(file, remembered == FileEncoding::Auto ? encoding : remembered);
+    if (!readSuccessful && remembered != FileEncoding::Auto) {
+        // An external edit may have invalidated the remembered codec. Leave
+        // the file accessible so the user can choose another one manually.
+        file.close();
+        readSuccessful = editor->readFromDisk(file, FileEncoding::Auto);
+        // Keep the preference if both reads fail (for example, a temporary
+        // I/O error). Only a usable fallback proves we can discard the hint.
+        if (readSuccessful)
+            FileEncodingHistory::forget(filePath);
+    }
+    else if (readSuccessful && remembered != FileEncoding::Auto) {
+        // A BOM may override the history; retain the actual decoded encoding.
+        FileEncodingHistory::remember(filePath, editor->savedEncoding());
+    }
 
     if (!readSuccessful) {
         delete editor;
@@ -395,6 +413,7 @@ QFileDevice::FileError ScintillaNext::save()
     if (writeSuccessful == QFileDevice::NoError) {
         updateTimestamp();
         diskEncoding = fileEncoding;
+        FileEncodingHistory::remember(path, diskEncoding);
         setSavePoint();
 
         // If this was a temporary file, make sure it is not any more
@@ -432,6 +451,8 @@ bool ScintillaNext::reloadWithEncoding(FileEncoding::Type encoding)
     updateTimestamp();
     setSavePoint();
 
+    FileEncodingHistory::remember(fileInfo.filePath(), diskEncoding);
+
     // If this was a temporary file, make sure it is not any more
     if (isTemporary())
         setTemporary(false);
@@ -467,6 +488,7 @@ QFileDevice::FileError ScintillaNext::saveAs(const QString &newFilePath)
     if (saveSuccessful == QFileDevice::NoError) {
         setFileInfo(newFilePath);
         diskEncoding = fileEncoding;
+        FileEncodingHistory::remember(newFilePath, diskEncoding);
         setSavePoint();
 
         // If this was a temporary file, make sure it is not any more
@@ -485,7 +507,10 @@ QFileDevice::FileError ScintillaNext::saveAs(const QString &newFilePath)
 QFileDevice::FileError ScintillaNext::saveCopyAs(const QString &filePath)
 {
     const QByteArray data = QByteArray::fromRawData((char*)characterPointer(), textLength());
-    return writeToDisk(data, filePath, fileEncoding, lastFileError);
+    const auto result = writeToDisk(data, filePath, fileEncoding, lastFileError);
+    if (result == QFileDevice::NoError)
+        FileEncodingHistory::remember(filePath, fileEncoding);
+    return result;
 }
 
 QFileDevice::FileError ScintillaNext::saveSessionCopy(const QString &path)
@@ -504,7 +529,11 @@ bool ScintillaNext::rename(const QString &newFilePath)
     if (saveCopyAs(newFilePath) == QFileDevice::NoError) {
         // Remove the old file
         const QString oldPath = fileInfo.canonicalFilePath();
-        QFile::remove(oldPath);
+        const QString newPath = QFileInfo(newFilePath).canonicalFilePath();
+        // A rename to the same file must not remove the file just written,
+        // or its newly updated encoding history.
+        if (QFileInfo(oldPath) != QFileInfo(newPath) && QFile::remove(oldPath))
+            FileEncodingHistory::forget(oldPath);
 
         // Everything worked fine, so update the buffer's info
         setFileInfo(newFilePath);

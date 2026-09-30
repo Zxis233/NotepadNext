@@ -44,7 +44,8 @@ public:
     explicit ScintillaNext(QString name, QWidget *parent = Q_NULLPTR);
     virtual ~ScintillaNext();
 
-    static ScintillaNext *fromFile(const QString &filePath, bool tryToCreate=false, FileEncoding::Type encoding=FileEncoding::Auto);
+    static ScintillaNext *fromFile(const QString &filePath, bool tryToCreate=false,
+                                 FileEncoding::Type encoding=FileEncoding::Auto, bool useEncodingHistory=true);
     static ScintillaNext *fromSessionFile(const QString &filePath);
     static QString eolModeToString(int eolMode);
     static int stringToEolMode(QString eolMode);
