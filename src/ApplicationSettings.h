@@ -104,6 +104,7 @@ public:
     DEFINE_SETTING(CenterSearchDialog, centerSearchDialog, bool)
 
     DEFINE_SETTING(TabsClosable, tabsClosable, bool)
+    DEFINE_SETTING(TabUseEditorFont, tabUseEditorFont, bool)
     DEFINE_SETTING(ExitOnLastTabClosed, exitOnLastTabClosed, bool)
 
     DEFINE_SETTING(CombineSearchResults, combineSearchResults, bool)

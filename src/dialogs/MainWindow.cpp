@@ -117,7 +117,7 @@ MainWindow::MainWindow(NotepadNextApplication *app) :
     connect(this, &MainWindow::aboutToClose, this, &MainWindow::saveSettings);
 
     // Create and set up the connections to the docked editor
-    dockedEditor = new DockedEditor(this);
+    dockedEditor = new DockedEditor(app->getSettings(), this);
     connect(dockedEditor, &DockedEditor::editorCloseRequested, this, &MainWindow::closeFile);
     connect(dockedEditor, &DockedEditor::editorActivated, this, &MainWindow::activateEditor);
     connect(dockedEditor, &DockedEditor::contextMenuRequestedForEditor, this, &MainWindow::tabBarRightClicked);

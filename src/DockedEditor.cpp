@@ -24,10 +24,13 @@
 #include "DockComponentsFactory.h"
 #include "DockedEditorTitleBar.h"
 #include "DockAreaTitleBar.h"
+#include "ElidingLabel.h"
+#include "ApplicationSettings.h"
 
 #include "ScintillaNext.h"
 
 #include <QUuid>
+#include <QFont>
 
 
 class DockedEditorComponentsFactory : public ads::CDockComponentsFactory
@@ -44,7 +47,7 @@ public:
 };
 
 
-DockedEditor::DockedEditor(QWidget *parent) : QObject(parent)
+DockedEditor::DockedEditor(ApplicationSettings *settings, QWidget *parent) : QObject(parent), settings(settings)
 {
     ads::CDockComponentsFactory::setFactory(new DockedEditorComponentsFactory());
 
@@ -66,6 +69,10 @@ DockedEditor::DockedEditor(QWidget *parent) : QObject(parent)
 
     dockManager = new ads::CDockManager(parent);
     dockManager->setStyleSheet("");
+
+    connect(settings, &ApplicationSettings::tabUseEditorFontChanged, this, &DockedEditor::updateTabFonts);
+    connect(settings, &ApplicationSettings::fontNameChanged, this, &DockedEditor::updateTabFonts);
+    connect(settings, &ApplicationSettings::fontSizeChanged, this, &DockedEditor::updateTabFonts);
 
     connect(dockManager, &ads::CDockManager::focusedDockWidgetChanged, this, [=, this](ads::CDockWidget* old, ads::CDockWidget* now) {
         Q_UNUSED(old)
@@ -97,6 +104,34 @@ DockedEditor::DockedEditor(QWidget *parent) : QObject(parent)
     });
 }
 
+
+void DockedEditor::applyTabFont(ads::CDockWidget *dockWidget)
+{
+    auto tab = dockWidget->tabWidget();
+    // Only change the title label, not close buttons, icons, or editor widgets.
+    if (auto label = tab->findChild<ads::CElidingLabel *>()) {
+        QFont font;
+        if (settings->tabUseEditorFont()) {
+            font.setFamily(settings->fontName());
+            font.setPointSize(settings->fontSize());
+        }
+        // An unresolved QFont clears the override and resumes UI inheritance.
+        label->setFont(font);
+        label->updateGeometry();
+        tab->updateGeometry();
+    }
+}
+
+void DockedEditor::updateTabFonts()
+{
+    // Include inactive tabs and every split area, not just the focused tab.
+    for (auto editor : editors()) {
+        if (editor) {
+            if (auto dockWidget = qobject_cast<ads::CDockWidget *>(editor->parentWidget()))
+                applyTabFont(dockWidget);
+        }
+    }
+}
 
 ScintillaNext *DockedEditor::getCurrentEditor() const
 {
@@ -167,6 +202,7 @@ void DockedEditor::addEditor(ScintillaNext *editor)
 
     // Disable elide, elided file names not readable when lots of files opened
     dockWidget->tabWidget()->setElideMode(Qt::ElideNone);
+    applyTabFont(dockWidget);
 
     // We need a unique object name. Can't use the name or file path so use a uuid
     dockWidget->setObjectName(QUuid::createUuid().toString());

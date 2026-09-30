@@ -77,6 +77,11 @@ when the platform reports them. On older Qt versions or platforms that do not
 report a color scheme, the initial system palette provides the fallback.
 A user-provided `custom.css` can override the application interface colors.
 
+Under **Settings > Preferences > Default Font**, **Tab title font** selects
+the default interface font or the editor's configured font family and size.
+The choice is remembered and updates all document tabs immediately, including
+tabs in split views. New and restored tabs use the same setting.
+
 # File encodings
 
 The **Encoding** menu supports UTF-8, UTF-8 BOM, UTF-16 LE/BE BOM, GBK,

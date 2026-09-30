@@ -26,6 +26,8 @@
 #include "DockManager.h"
 #include "ScintillaNext.h"
 
+class ApplicationSettings;
+
 class DockedEditor : public QObject
 {
     Q_OBJECT
@@ -34,9 +36,13 @@ private:
     ads::CDockManager* dockManager = Q_NULLPTR;
     ads::CDockAreaWidget* latestDockArea = Q_NULLPTR;
     QPointer<ScintillaNext> currentEditor;
+    ApplicationSettings *settings;
+
+    void applyTabFont(ads::CDockWidget *dockWidget);
+    void updateTabFonts();
 
 public:
-    explicit DockedEditor(QWidget *parent);
+    explicit DockedEditor(ApplicationSettings *settings, QWidget *parent);
 
     ScintillaNext *getCurrentEditor() const;
     ads::CDockAreaWidget *currentDockArea() const;

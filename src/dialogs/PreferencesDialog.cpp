@@ -95,6 +95,18 @@ PreferencesDialog::PreferencesDialog(ApplicationSettings *settings, QWidget *par
     connect(ui->spbDefaultFontSize, QOverload<int>::of(&QSpinBox::valueChanged), settings, &ApplicationSettings::setFontSize);
     connect(settings, &ApplicationSettings::fontSizeChanged, ui->spbDefaultFontSize, &QSpinBox::setValue);
 
+    ui->comboBoxTabTitleFont->addItem(tr("Default interface font"), false);
+    ui->comboBoxTabTitleFont->addItem(tr("Editor font"), true);
+    ui->comboBoxTabTitleFont->setCurrentIndex(ui->comboBoxTabTitleFont->findData(settings->tabUseEditorFont()));
+    connect(ui->comboBoxTabTitleFont, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int index) {
+        if (index >= 0)
+            this->settings->setTabUseEditorFont(ui->comboBoxTabTitleFont->itemData(index).toBool());
+    });
+    connect(settings, &ApplicationSettings::tabUseEditorFontChanged, this, [this](bool useEditorFont) {
+        const QSignalBlocker blocker(ui->comboBoxTabTitleFont);
+        ui->comboBoxTabTitleFont->setCurrentIndex(ui->comboBoxTabTitleFont->findData(useEditorFont));
+    });
+
     ui->comboBoxLineEndings->addItem(tr("System Default"), QString(""));
     ui->comboBoxLineEndings->addItem(tr("Windows (CR LF)"), ScintillaNext::eolModeToString(SC_EOL_CRLF));
     ui->comboBoxLineEndings->addItem(tr("Linux (LF)"), ScintillaNext::eolModeToString(SC_EOL_LF));
