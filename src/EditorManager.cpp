@@ -21,6 +21,7 @@
 #include "ApplicationSettings.h"
 
 #include "EditorManager.h"
+#include "Theme.h"
 #include "ScintillaNext.h"
 #include "Scintilla.h"
 
@@ -182,6 +183,7 @@ void EditorManager::manageEditor(ScintillaNext *editor)
     editors.append(QPointer<ScintillaNext>(editor));
 
     setupEditor(editor);
+    Theme::setEditorDark(editor, settings->darkMode());
 
     emit editorCreated(editor);
 }

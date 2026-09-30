@@ -64,6 +64,14 @@ defaults -currentHost write -g AppleFontSmoothing -int 0
 
 A restart is required for this to take effect.
 
+# Appearance
+
+To enable dark mode, open **Settings > Preferences** and select **Dark mode**.
+The change takes effect immediately and is remembered across restarts. It covers
+the application interface, document syntax colors, and Lua console. Uncheck the
+option to restore the original colors. A user-provided `custom.css` can override
+the application interface colors.
+
 # Translations
 Translations are contributed by the community. All translations are managed using Crowdin at `https://crowdin.com/project/notepadnext`. If there is a language missing you would like to contribute, feel free to start a discussion on Crowdin.
 

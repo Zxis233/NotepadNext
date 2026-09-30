@@ -18,6 +18,8 @@
 
 
 #include "LuaConsoleDock.h"
+#include "Theme.h"
+#include "NotepadNextApplication.h"
 #include "ui_LuaConsoleDock.h"
 
 #include "ScintillaNext.h"
@@ -184,6 +186,9 @@ LuaConsoleDock::LuaConsoleDock(LuaState *l, QWidget *parent) :
     setupStyle(output);
 
     output->styleSetFore(39, 0x0000FF); // For error messages
+    const bool dark = static_cast<NotepadNextApplication *>(qApp)->getSettings()->darkMode();
+    Theme::setEditorDark(input, dark);
+    Theme::setEditorDark(output, dark);
 
     input->setExtraAscent(2);
     input->setExtraDescent(2);

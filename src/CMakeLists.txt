@@ -3,6 +3,8 @@ qt_add_executable(NotepadNext
 	MACOSX_BUNDLE
 	ActionUtils.h
 	ApplicationSettings.h
+		Theme.h
+		Theme.cpp
 	ByteArrayUtils.h
 	ColorPickerDelegate.h
 	ComboBoxDelegate.h

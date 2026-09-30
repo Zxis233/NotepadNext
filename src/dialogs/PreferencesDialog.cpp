@@ -34,6 +34,7 @@ PreferencesDialog::PreferencesDialog(ApplicationSettings *settings, QWidget *par
     settings(settings)
 {
     ui->setupUi(this);
+    MapSettingToCheckBox(ui->checkBoxDarkMode, &ApplicationSettings::darkMode, &ApplicationSettings::setDarkMode, &ApplicationSettings::darkModeChanged);
 
     QIcon icon = style()->standardIcon(QStyle::SP_MessageBoxInformation);
     QPixmap pixmap = icon.pixmap(QSize(16, 16));

@@ -89,6 +89,7 @@ public:
     { setValue(QLatin1String(setting.key()), value); }
 
     DEFINE_SETTING(ShowMenuBar, showMenuBar, bool)
+    DEFINE_SETTING(DarkMode, darkMode, bool)
     DEFINE_SETTING(ShowToolBar, showToolBar, bool)
     DEFINE_SETTING(ShowTabBar, showTabBar, bool)
     DEFINE_SETTING(ShowStatusBar, showStatusBar, bool)

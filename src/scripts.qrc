@@ -77,6 +77,7 @@
         <file>languages/tcl.lua</file>
         <file>languages/tehex.lua</file>
         <file>languages/tex.lua</file>
+        <file>languages/toml.lua</file>
         <file>languages/txt2tags.lua</file>
         <file>languages/vb.lua</file>
         <file>languages/verilog.lua</file>

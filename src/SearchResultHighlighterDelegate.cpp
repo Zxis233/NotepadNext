@@ -58,26 +58,28 @@ void SearchResultHighlighterDelegate::paint(QPainter *painter, const QStyleOptio
 
     // Draw 'before' text (normal)
     painter->setFont(opt.font);
-    painter->setPen(opt.palette.color(QPalette::Text));
+    const auto textRole = opt.state & QStyle::State_Selected ? QPalette::HighlightedText : QPalette::Text;
+    painter->setPen(opt.palette.color(textRole));
     painter->drawText(x, y, before);
     x += fm.horizontalAdvance(before);
 
-    // Draw highlighted 'match' text (bold, red, yellow bg)
+    // Keep the match distinct on both light and dark backgrounds.
     QFont boldFont = opt.font;
     boldFont.setBold(true);
     painter->setFont(boldFont);
 
     int matchWidth = fm.horizontalAdvance(match);
     QRect highlightRect(x, textRect.top(), matchWidth, textRect.height());
-    painter->fillRect(highlightRect, QColor(Qt::yellow));
+    const bool dark = opt.palette.color(QPalette::Base).lightness() < 128;
+    painter->fillRect(highlightRect, dark ? QColor("#685020") : QColor(Qt::yellow));
 
-    painter->setPen(Qt::red);
+    painter->setPen(dark ? QColor("#fff0b0") : QColor(Qt::red));
     painter->drawText(x, y, match);
     x += matchWidth;
 
     // Draw 'after' text (normal)
     painter->setFont(opt.font);
-    painter->setPen(opt.palette.color(QPalette::Text));
+    painter->setPen(opt.palette.color(textRole));
     painter->drawText(x, y, after);
 
     painter->restore();

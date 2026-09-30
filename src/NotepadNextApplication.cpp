@@ -27,6 +27,11 @@
 #include "SessionManager.h"
 #include "TranslationManager.h"
 #include "ApplicationSettings.h"
+#include "Theme.h"
+#include "ScintillaNext.h"
+#include <QStyle>
+#include <QStyleFactory>
+#include <QPalette>
 
 #include "LuaState.h"
 #include "lua.hpp"
@@ -104,6 +109,42 @@ bool NotepadNextApplication::init()
 
         settings->clear();
     }
+
+    const QPalette lightPalette = palette();
+    const QString lightStyle = style()->objectName();
+    auto applyTheme = [this, lightPalette, lightStyle](bool dark) {
+        if (QStyle *themeStyle = QStyleFactory::create(dark ? QStringLiteral("Fusion") : lightStyle))
+            setStyle(themeStyle);
+        QPalette colors = lightPalette;
+        if (dark) {
+            colors.setColor(QPalette::Window, QColor("#292929"));
+            colors.setColor(QPalette::WindowText, QColor("#e0e0e0"));
+            colors.setColor(QPalette::Base, QColor("#202020"));
+            colors.setColor(QPalette::AlternateBase, QColor("#303030"));
+            colors.setColor(QPalette::Text, QColor("#e0e0e0"));
+            colors.setColor(QPalette::Button, QColor("#353535"));
+            colors.setColor(QPalette::ButtonText, QColor("#e0e0e0"));
+            colors.setColor(QPalette::ToolTipBase, QColor("#303030"));
+            colors.setColor(QPalette::ToolTipText, QColor("#e0e0e0"));
+            colors.setColor(QPalette::Highlight, QColor("#305080"));
+            colors.setColor(QPalette::HighlightedText, Qt::white);
+            colors.setColor(QPalette::Link, QColor("#80bfff"));
+            colors.setColor(QPalette::Light, QColor("#606060"));
+            colors.setColor(QPalette::Midlight, QColor("#454545"));
+            colors.setColor(QPalette::Mid, QColor("#404040"));
+            colors.setColor(QPalette::Dark, QColor("#181818"));
+            for (auto role : {QPalette::WindowText, QPalette::Text, QPalette::ButtonText})
+                colors.setColor(QPalette::Disabled, role, QColor("#808080"));
+        }
+        setPalette(colors);
+        for (QWidget *widget : allWidgets()) {
+            if (auto editor = qobject_cast<ScintillaNext *>(widget))
+                Theme::setEditorDark(editor, dark);
+        }
+    };
+    connect(settings, &ApplicationSettings::darkModeChanged, this, applyTheme);
+    if (settings->darkMode())
+        applyTheme(true);
 
     // Translation files are stored as a qresource
     translationManager = new TranslationManager(this, QStringLiteral(":/i18n/"));
@@ -271,6 +312,7 @@ QStringList NotepadNextApplication::getLanguages() const
 
 void NotepadNextApplication::setEditorLanguage(ScintillaNext *editor, const QString &languageName) const
 {
+    Theme::setEditorDark(editor, false);
     LuaExtension::Instance().setEditor(editor);
 
     getLuaState()->setVariable("languageName", languageName);
@@ -295,6 +337,7 @@ void NotepadNextApplication::setEditorLanguage(ScintillaNext *editor, const QStr
     getLuaState()->setVariable("skip_tabwidth", skipTabWidth);
 
     getLuaState()->execute("SetLanguage(languageName)");
+    Theme::setEditorDark(editor, settings->darkMode());
 }
 
 QStringList NotepadNextApplication::getLanguageKeywords(const QString &languageName) const
