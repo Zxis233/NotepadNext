@@ -91,7 +91,7 @@ private slots:
         QCOMPARE(Theme::lightStyleForeground("toml", SCE_TOML_STRING_DQ, {}, {}, 0), 0x0a3069);
         QCOMPARE(Theme::lightStyleForeground("markdown", SCE_MARKDOWN_HEADER1, {}, {}, 0), 0x0550ae);
         QCOMPARE(Theme::lightStyleForeground("markdown", SCE_MARKDOWN_BLOCKQUOTE, {}, {}, 0), 0x116329);
-        QCOMPARE(Theme::lightStyleForeground("markdown", SCE_MARKDOWN_CODE, {}, {}, 0), 0x0550ae);
+        QCOMPARE(Theme::lightStyleForeground("markdown", SCE_MARKDOWN_CODE, {}, {}, 0), Theme::Light::String);
         QCOMPARE(Theme::lightStyleForeground("markdown", SCE_MARKDOWN_HRULE, {}, {}, 0), 0x0550ae);
         QCOMPARE(Theme::lightStyleForeground("markdown", SCE_MARKDOWN_LINK, {}, {}, 0), Theme::Light::Number);
         QCOMPARE(Theme::lightStyleForeground("lua", 39, {}, {}, 0x0000ff), Theme::Light::Error);
@@ -99,6 +99,25 @@ private slots:
         // an already transformed blue into the fallback would misclassify it.
         QCOMPARE(Theme::lightStyleForeground("legacy", 0, {}, {}, 0x000080), Theme::Light::String);
         QCOMPARE(Theme::darkStyleForeground("legacy", 0, {}, {}, 0x000080), Theme::Dark::String);
+    }
+
+    void markdownSeparatesHeadingsCodeAndMath()
+    {
+        for (bool dark : {false, true}) {
+            const auto foreground = dark ? Theme::darkStyleForeground : Theme::lightStyleForeground;
+            const int heading = dark ? Theme::Dark::Heading : Theme::Light::Heading;
+            const int code = dark ? Theme::Dark::String : Theme::Light::String;
+            const int math = dark ? Theme::Dark::Function : Theme::Light::Function;
+            const int text = dark ? Theme::Dark::Foreground : Theme::Light::Foreground;
+            QVERIFY(heading != code && heading != math && code != math);
+            QVERIFY(heading != text && code != text && math != text);
+            for (int style = SCE_MARKDOWN_HEADER1; style <= SCE_MARKDOWN_HEADER6; ++style)
+                QCOMPARE(foreground("markdown", style, {}, {}, 0), heading);
+            for (int style : {SCE_MARKDOWN_CODE, SCE_MARKDOWN_CODE2, SCE_MARKDOWN_CODEBK})
+                QCOMPARE(foreground("markdown", style, {}, {}, 0), code);
+            for (int style : {SCE_MARKDOWN_MATH, SCE_MARKDOWN_MATHBK})
+                QCOMPARE(foreground("markdown", style, {}, {}, 0), math);
+        }
     }
 
     void lightJsonDistinguishesKeysFromStrings()

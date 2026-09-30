@@ -83,6 +83,10 @@ does not reproduce every TextMate or language-server distinction: for example,
 the C++ lexer shares one style for ordinary functions, user types and variables.
 Both modes use the same layout and font settings.
 
+Markdown headings share one color across all six levels. Code and GitHub-style
+math expressions use distinct existing palette colors, including inline math,
+`$$` blocks and `math` fences.
+
 Changes take effect immediately across all document tabs and the Lua console,
 and the selected mode is remembered across restarts. Follow system also reacts
 to system appearance changes while the application is running on Qt 6.5 or later

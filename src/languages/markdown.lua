@@ -4,6 +4,12 @@ L.lexer = "markdown"
 
 L.disableFoldMargin = true
 
+L.properties = {
+    -- Apply heading styles to the complete ATX heading, not just its '#' prefix.
+    ["lexer.markdown.header.eolfill"] = "1",
+    ["lexer.markdown.gfm"] = "1",
+}
+
 L.extensions = {
     "md",
     "markdown",
@@ -90,7 +96,7 @@ L.styles = {
         fgColor = rgb(0x555555),
         bgColor = rgb(0xFFFFFF),
     },
-    ["SCE_MARKDOWN_OLIST_ITEM"] = {
+    ["SCE_MARKDOWN_BLOCKQUOTE"] = {
         id = 15,
         fgColor = rgb(0x000088),
         bgColor = rgb(0xFFFFFF),
@@ -123,7 +129,18 @@ L.styles = {
         bgColor = rgb(0xEEEEEE),
     },
     ["SCE_MARKDOWN_CODEBK"] = {
-        id = 20,
+        id = 21,
+        fgColor = rgb(0x000088),
+        bgColor = rgb(0xEEEEEE),
+    },
+    -- Foregrounds are mapped to existing GitHub palette roles by ThemePalette.
+    ["SCE_MARKDOWN_MATH"] = {
+        id = 22,
+        fgColor = rgb(0x000088),
+        bgColor = rgb(0xEEEEEE),
+    },
+    ["SCE_MARKDOWN_MATHBK"] = {
+        id = 23,
         fgColor = rgb(0x000088),
         bgColor = rgb(0xEEEEEE),
     },

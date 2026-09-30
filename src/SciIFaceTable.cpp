@@ -1026,6 +1026,8 @@ static std::vector<IFaceConstant> ifaceConstants = {
     { "SCE_MARKDOWN_HRULE", 17 },
     { "SCE_MARKDOWN_LINE_BEGIN", 1 },
     { "SCE_MARKDOWN_LINK", 18 },
+    { "SCE_MARKDOWN_MATH", 22 },
+    { "SCE_MARKDOWN_MATHBK", 23 },
     { "SCE_MARKDOWN_OLIST_ITEM", 14 },
     { "SCE_MARKDOWN_PRECHAR", 12 },
     { "SCE_MARKDOWN_STRIKEOUT", 16 },
@@ -3187,7 +3189,7 @@ static std::vector<IFaceProperty> ifaceProperties = {
 
 enum {
 	ifaceFunctionCount = 301,
-	ifaceConstantCount = 2526,
+	ifaceConstantCount = 2528,
 	ifacePropertyCount = 228
 };
 

@@ -39,6 +39,10 @@
 #include <cstring>
 #include <cstdio>
 #include <cstdarg>
+#include <climits>
+#include <cctype>
+#include <algorithm>
+#include <vector>
 
 #include <string>
 #include <string_view>
@@ -57,6 +61,8 @@
 using namespace Lexilla;
 
 namespace {
+
+#include "LexMarkdownGFM.h"
 
 constexpr bool IsNewline(const int ch) {
     // sc.GetRelative(i) returns '\0' if out of range
@@ -164,6 +170,12 @@ bool IsValidHrule(const Sci_PositionU endPos, StyleContext &sc) {
 
 void ColorizeMarkdownDoc(Sci_PositionU startPos, Sci_Position length, int initStyle,
                                 WordList **, Accessor &styler) {
+    // property lexer.markdown.gfm
+    //  Enable line-based GitHub Markdown highlighting extensions.
+    if (styler.GetPropertyInt("lexer.markdown.gfm", 0)) {
+        MarkdownGFM::Colourise(startPos, length, styler);
+        return;
+    }
     const Sci_PositionU endPos = startPos + length;
     int precharCount = 0;
     bool isLinkNameDetecting = false;

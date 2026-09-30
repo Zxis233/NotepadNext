@@ -97,6 +97,8 @@ int Theme::darkStyleForeground(const QByteArray &lexer, int style, const QByteAr
         case SCE_MARKDOWN_CODE:
         case SCE_MARKDOWN_CODE2:
         case SCE_MARKDOWN_CODEBK: return Dark::String;
+        case SCE_MARKDOWN_MATH:
+        case SCE_MARKDOWN_MATHBK: return Dark::Function;
         default: return Dark::Foreground;
         }
     }
@@ -183,7 +185,9 @@ int Theme::lightStyleForeground(const QByteArray &lexer, int style, const QByteA
         case SCE_MARKDOWN_BLOCKQUOTE: return Light::Quote;
         case SCE_MARKDOWN_CODE:
         case SCE_MARKDOWN_CODE2:
-        case SCE_MARKDOWN_CODEBK: return Light::Code;
+        case SCE_MARKDOWN_CODEBK: return Light::String;
+        case SCE_MARKDOWN_MATH:
+        case SCE_MARKDOWN_MATHBK: return Light::Function;
         case SCE_MARKDOWN_ULIST_ITEM:
         case SCE_MARKDOWN_OLIST_ITEM: return Light::Entity;
         case SCE_MARKDOWN_LINK: return Light::Number;
