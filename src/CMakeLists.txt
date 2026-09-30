@@ -7,8 +7,9 @@ qt_add_executable(NotepadNext
 	FileEncoding.cpp
 	FileEncodingHistory.h
 	FileEncodingHistory.cpp
-		Theme.h
-		Theme.cpp
+	Theme.h
+	Theme.cpp
+	ThemePalette.cpp
 	ByteArrayUtils.h
 	ColorPickerDelegate.h
 	ComboBoxDelegate.h

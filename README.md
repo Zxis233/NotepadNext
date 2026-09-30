@@ -70,6 +70,12 @@ Open **Settings > Preferences > Theme** and choose **Follow system**, **Light**,
 or **Dark**. New installations follow the system by default. An explicitly saved
 choice from the older Dark mode checkbox is preserved as Light or Dark.
 
+Dark mode uses a GitHub Dark-inspired palette: a `#0d1117` editing background,
+blue-gray interface surfaces, blue selections, coral keywords, light-blue
+strings, and muted comments. TOML and Markdown have dedicated syntax mappings;
+other languages use lexer metadata where available. Light mode retains its
+existing colors, and both modes use the same layout and font settings.
+
 Changes take effect immediately across all document tabs and the Lua console,
 and the selected mode is remembered across restarts. Follow system also reacts
 to system appearance changes while the application is running on Qt 6.5 or later

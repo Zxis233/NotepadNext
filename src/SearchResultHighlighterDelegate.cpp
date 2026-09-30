@@ -18,6 +18,7 @@
 
 #include "SearchResultHighlighterDelegate.h"
 #include "SearchResultData.h"
+#include "Theme.h"
 
 #include <QPainter>
 
@@ -71,9 +72,9 @@ void SearchResultHighlighterDelegate::paint(QPainter *painter, const QStyleOptio
     int matchWidth = fm.horizontalAdvance(match);
     QRect highlightRect(x, textRect.top(), matchWidth, textRect.height());
     const bool dark = opt.palette.color(QPalette::Base).lightness() < 128;
-    painter->fillRect(highlightRect, dark ? QColor("#685020") : QColor(Qt::yellow));
+    painter->fillRect(highlightRect, dark ? QColor(Theme::Dark::SearchBackground) : QColor(Qt::yellow));
 
-    painter->setPen(dark ? QColor("#fff0b0") : QColor(Qt::red));
+    painter->setPen(dark ? QColor(Theme::Dark::SearchText) : QColor(Qt::red));
     painter->drawText(x, y, match);
     x += matchWidth;
 

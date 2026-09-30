@@ -12,3 +12,8 @@ add_executable(ThemeSettingsTest ThemeSettingsTest.cpp
 target_include_directories(ThemeSettingsTest PRIVATE ../../src)
 target_link_libraries(ThemeSettingsTest PRIVATE Qt6::Core Qt6::Widgets Qt6::Test)
 add_test(NAME ThemeSettingsTest COMMAND ThemeSettingsTest)
+
+add_executable(ThemePaletteTest ThemePaletteTest.cpp ../../src/ThemePalette.cpp)
+target_include_directories(ThemePaletteTest PRIVATE ../../src ../../thirdparty/lexilla/include)
+target_link_libraries(ThemePaletteTest PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
+add_test(NAME ThemePaletteTest COMMAND ThemePaletteTest)

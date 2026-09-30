@@ -53,6 +53,7 @@
 
 #include "NotepadNextApplication.h"
 #include "ApplicationSettings.h"
+#include "Theme.h"
 
 #include "ScintillaNext.h"
 
@@ -1976,6 +1977,8 @@ void MainWindow::applyStyleSheet()
              colors.color(QPalette::Highlight).name(),
              colors.color(QPalette::HighlightedText).name(),
              colors.color(QPalette::Disabled, QPalette::WindowText).name());
+
+    sheet += Theme::widgetStyleSheet(app->isDarkTheme());
 
     // If there is a "custom.css" file where the ini is located, load it as a style sheet addition
     QString directoryPath = QFileInfo(app->getSettings()->fileName()).absolutePath();
