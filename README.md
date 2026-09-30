@@ -72,9 +72,16 @@ choice from the older Dark mode checkbox is preserved as Light or Dark.
 
 Dark mode uses a GitHub Dark-inspired palette: a `#0d1117` editing background,
 blue-gray interface surfaces, blue selections, coral keywords, light-blue
-strings, and muted comments. TOML and Markdown have dedicated syntax mappings;
-other languages use lexer metadata where available. Light mode retains its
-existing colors, and both modes use the same layout and font settings.
+strings, and muted comments. Light mode uses a white editing background,
+`#f6f8fa` interface surfaces, dark-gray text and blue selections. Its syntax
+colors follow [GitHub's VS Code Light Default theme](https://github.com/primer/github-vscode-theme):
+red keywords, dark-blue strings, purple functions, orange type/entity names,
+green HTML tags and JSON property names, blue Markdown headings and green quotes.
+JSON, HTML/XML, TOML, Markdown and Python have dedicated mappings where needed;
+other languages use lexer metadata. Token boundaries depend on Lexilla, so this
+does not reproduce every TextMate or language-server distinction: for example,
+the C++ lexer shares one style for ordinary functions, user types and variables.
+Both modes use the same layout and font settings.
 
 Changes take effect immediately across all document tabs and the Lua console,
 and the selected mode is remembered across restarts. Follow system also reacts
