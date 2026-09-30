@@ -72,6 +72,9 @@ public:
 
     QStringList debugInfo() const;
 
+signals:
+    void themeApplied();
+
 protected:
     bool event(QEvent *event) override;
 

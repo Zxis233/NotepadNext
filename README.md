@@ -78,7 +78,8 @@ report a color scheme, the initial system palette provides the fallback.
 A user-provided `custom.css` can override the application interface colors.
 
 Under **Settings > Preferences > Default Font**, **Tab title font** selects
-the default interface font or the editor's configured font family and size.
+the default interface font or the editor's configured font family. Tab titles
+keep the interface font size, independently of the editor's font size.
 The choice is remembered and updates all document tabs immediately, including
 tabs in split views. New and restored tabs use the same setting.
 

@@ -1020,6 +1020,7 @@ MainWindow::MainWindow(NotepadNextApplication *app) :
 
     setupLanguageMenu();
 
+    connect(app, &NotepadNextApplication::themeApplied, this, &MainWindow::applyStyleSheet);
     applyStyleSheet();
 
     restoreSettings();
@@ -1956,6 +1957,25 @@ void MainWindow::applyStyleSheet()
     f.open(QFile::ReadOnly);
     sheet = f.readAll();
     f.close();
+
+    const QPalette colors = app->palette();
+    ui->mainToolBar->setPalette(colors);
+    ui->menuBar->setPalette(colors);
+
+    // A fixed Fusion style no longer implicitly repolishes the window on
+    // theme changes. Use explicit colors for the menu/toolbar surfaces and
+    // rebuild these rules when a theme is applied. Keep all layout metrics.
+    sheet += QStringLiteral(
+        "\nQToolBar, QMenuBar, QMenu { background-color: %1; color: %2; }\n"
+        "QMenuBar::item { background-color: transparent; color: %2; }\n"
+        "QMenuBar::item:selected, QMenuBar::item:pressed, QMenu::item:selected {"
+        " background-color: %3; color: %4; }\n"
+        "QMenuBar::item:disabled, QMenu::item:disabled { color: %5; }\n")
+        .arg(colors.color(QPalette::Window).name(),
+             colors.color(QPalette::WindowText).name(),
+             colors.color(QPalette::Highlight).name(),
+             colors.color(QPalette::HighlightedText).name(),
+             colors.color(QPalette::Disabled, QPalette::WindowText).name());
 
     // If there is a "custom.css" file where the ini is located, load it as a style sheet addition
     QString directoryPath = QFileInfo(app->getSettings()->fileName()).absolutePath();

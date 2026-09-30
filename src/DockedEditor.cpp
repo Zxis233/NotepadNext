@@ -72,7 +72,6 @@ DockedEditor::DockedEditor(ApplicationSettings *settings, QWidget *parent) : QOb
 
     connect(settings, &ApplicationSettings::tabUseEditorFontChanged, this, &DockedEditor::updateTabFonts);
     connect(settings, &ApplicationSettings::fontNameChanged, this, &DockedEditor::updateTabFonts);
-    connect(settings, &ApplicationSettings::fontSizeChanged, this, &DockedEditor::updateTabFonts);
 
     connect(dockManager, &ads::CDockManager::focusedDockWidgetChanged, this, [=, this](ads::CDockWidget* old, ads::CDockWidget* now) {
         Q_UNUSED(old)
@@ -112,8 +111,8 @@ void DockedEditor::applyTabFont(ads::CDockWidget *dockWidget)
     if (auto label = tab->findChild<ads::CElidingLabel *>()) {
         QFont font;
         if (settings->tabUseEditorFont()) {
+            // Override only the family; keep the inherited interface size.
             font.setFamily(settings->fontName());
-            font.setPointSize(settings->fontSize());
         }
         // An unresolved QFont clears the override and resumes UI inheritance.
         label->setFont(font);

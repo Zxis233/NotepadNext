@@ -305,6 +305,8 @@ void NotepadNextApplication::updateTheme()
         if (auto editor = qobject_cast<ScintillaNext *>(widget))
             Theme::setEditorDark(editor, darkTheme);
     }
+    // Style-sheet colors also need refreshing after the palette changes.
+    emit themeApplied();
 }
 
 QStringList NotepadNextApplication::getLanguages() const
