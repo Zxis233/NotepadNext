@@ -10,7 +10,7 @@ on:
   pull_request:
 
 env:
-  QT_RELEASE_VER: 6.5
+  QT_RELEASE_VER: "6.10"
 
 jobs:
   build:
@@ -217,7 +217,7 @@ jobs:
     if: github.repository == 'dail8859/NotepadNext' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      QT_ARM64_RELEASE_VER: 6.8
+      # QT_ARM64_RELEASE_VER: 6.8
 
     steps:
       - name: Checkout Repository
