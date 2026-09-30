@@ -42,6 +42,7 @@
 #include <QProcess>
 #include <QScreen>
 #include <QFontDatabase>
+#include <QPointer>
 
 #ifdef Q_OS_WIN
 #include <QSimpleUpdater.h>
@@ -258,6 +259,8 @@ MainWindow::MainWindow(NotepadNextApplication *app) :
     connect(ui->actionWindows,   &QAction::triggered, this, handleEolTrigger);
     connect(ui->actionUnix,      &QAction::triggered, this, handleEolTrigger);
     connect(ui->actionMacintosh, &QAction::triggered, this, handleEolTrigger);
+
+    setupEncodingMenu();
 
 
     connectEditorAction(ui->actionUpperCase, &ScintillaNext::upperCase);
@@ -1171,7 +1174,7 @@ ScintillaNext *MainWindow::getInitialEditor()
         //   can undo any actions
         //   can redo any actions
         // Then do not treat it as an 'initial editor' that can be transparently closed for the user
-        if (editor->isTemporary() || editor->isFile() || editor->canUndo() || editor->canRedo()) {
+        if (editor->isTemporary() || editor->isFile() || editor->canUndo() || editor->canRedo() || editor->canSaveToDisk()) {
             return Q_NULLPTR;
         }
 
@@ -1294,11 +1297,83 @@ void MainWindow::setFolderAsWorkspacePath(const QString &dir)
     }
 }
 
+void MainWindow::setupEncodingMenu()
+{
+    reopenEncodingMenu = ui->menuEncodings->addMenu(tr("Reopen with Encoding"));
+    auto convertMenu = ui->menuEncodings->addMenu(tr("Convert to Encoding"));
+    encodingActionGroup = new QActionGroup(this);
+    encodingActionGroup->setExclusive(true);
+
+    for (auto encoding : {FileEncoding::Utf8, FileEncoding::Utf8Bom, FileEncoding::Utf16LE,
+                          FileEncoding::Utf16BE, FileEncoding::Gbk, FileEncoding::ShiftJis}) {
+        auto reopenAction = reopenEncodingMenu->addAction(FileEncoding::name(encoding));
+        connect(reopenAction, &QAction::triggered, this, [this, encoding]() {
+            changeEncoding(encoding, true);
+        });
+        auto convertAction = convertMenu->addAction(FileEncoding::name(encoding));
+        convertAction->setCheckable(true);
+        convertAction->setData(static_cast<int>(encoding));
+        convertAction->setToolTip(tr("Use this encoding the next time this document is saved."));
+        encodingActionGroup->addAction(convertAction);
+        connect(convertAction, &QAction::triggered, this, [this, encoding]() {
+            changeEncoding(encoding, false);
+        });
+    }
+    connect(ui->menuEncodings, &QMenu::aboutToShow, this, [this]() {
+        updateEncodingBasedUi(currentEditor());
+    });
+}
+
+void MainWindow::updateEncodingBasedUi(ScintillaNext *editor)
+{
+    ui->menuEncodings->setEnabled(editor != nullptr);
+    reopenEncodingMenu->setEnabled(editor && editor->isFile() && editor->getFileInfo().exists());
+    for (auto action : encodingActionGroup->actions()) {
+        action->setEnabled(editor != nullptr);
+        action->setChecked(editor && action->data().toInt() == static_cast<int>(editor->encoding()));
+    }
+}
+
+void MainWindow::changeEncoding(FileEncoding::Type encoding, bool reopen)
+{
+    // Keep the original target across modal dialogs, even if focus changes.
+    QPointer<ScintillaNext> editor = currentEditor();
+    if (!editor)
+        return;
+
+    if (reopen) {
+        if (!editor->isFile())
+            return;
+        if (editor->canSaveToDisk()) {
+            const auto reply = QMessageBox::warning(this, tr("Reopen with Encoding"),
+                tr("Reload %1 from disk using %2? Unsaved text and encoding changes will be discarded.")
+                    .arg(editor->getName(), FileEncoding::name(encoding)),
+                QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Cancel);
+            if (!editor || reply != QMessageBox::Discard) {
+                updateEncodingBasedUi(currentEditor());
+                return;
+            }
+        }
+        if (!editor->reloadWithEncoding(encoding))
+            QMessageBox::warning(this, tr("Error Reading File"), editor->fileErrorString());
+    }
+    else {
+        const QByteArray text = QByteArray::fromRawData((char *)editor->characterPointer(), editor->textLength());
+        QByteArray encoded;
+        QString error;
+        if (FileEncoding::encode(text, encoding, encoded, error))
+            editor->setEncoding(encoding);
+        else
+            QMessageBox::warning(this, tr("Cannot Convert Encoding"), error);
+    }
+    updateEncodingBasedUi(currentEditor());
+}
+
 void MainWindow::reloadFile()
 {
     auto editor = currentEditor();
 
-    if (!editor->isFile() && !editor->isSavedToDisk()) {
+    if (!editor || !editor->isFile()) {
         return;
     }
 
@@ -1797,13 +1872,15 @@ void MainWindow::updateGui(ScintillaNext *editor)
     updateSelectionBasedUi(editor);
     updateContentBasedUi(editor);
     updateLanguageBasedUi(editor);
+    updateEncodingBasedUi(editor);
 }
 
 void MainWindow::updateDocumentBasedUi(Scintilla::Update updated)
 {
     ScintillaNext *editor = qobject_cast<ScintillaNext *>(sender());
 
-    // TODO: what if this is triggered by an editor that is not the active editor?
+    if (!editor || editor != currentEditor())
+        return;
 
     if (Scintilla::FlagSet(updated, Scintilla::Update::Text)) {
         updateSelectionBasedUi(editor);
@@ -1856,6 +1933,11 @@ void MainWindow::detectLanguage(ScintillaNext *editor)
 void MainWindow::activateEditor(ScintillaNext *editor)
 {
     qInfo(Q_FUNC_INFO);
+
+    if (!editor) {
+        updateEncodingBasedUi(nullptr);
+        return;
+    }
 
     checkFileForModification(editor);
     updateGui(editor);
@@ -1995,8 +2077,11 @@ void MainWindow::showSaveErrorMessage(ScintillaNext *editor, QFileDevice::FileEr
         default:                            errorString = tr("Unknown error (%1)").arg(static_cast<int>(error)); break;
     }
 
+    if (!editor->fileErrorString().isEmpty())
+        errorString = editor->fileErrorString();
+
     QMessageBox::warning(this, tr("Error Saving File"),
-        tr("An error occurred when saving <b>%1</b><br><br>Error: %2").arg(name, errorString));
+        tr("An error occurred when saving <b>%1</b><br><br>Error: %2").arg(name.toHtmlEscaped(), errorString.toHtmlEscaped()));
 }
 
 void MainWindow::showEditorZoomLevelIndicator()
@@ -2109,12 +2194,28 @@ void MainWindow::addEditor(ScintillaNext *editor)
 
     detectLanguage(editor);
 
-    // These should only ever occur for the focused editor??
-    // TODO: look at editor inspector as an example to ensure updates are only coming from one editor.
-    // Can save the connection objects and disconnected from them and only connect to the editor as it is activated.
-    connect(editor, &ScintillaNext::savePointChanged, this, [=, this]() { updateSaveStatusBasedUi(editor); });
+    connect(editor, &ScintillaNext::savePointChanged, this, [this]() {
+        if (auto active = currentEditor())
+            updateSaveStatusBasedUi(active);
+    });
+    connect(editor, &ScintillaNext::encodingChanged, this, [this, editor]() {
+        if (editor == currentEditor())
+            updateEncodingBasedUi(editor);
+    });
+    connect(editor, &ScintillaNext::reloaded, this, [this, editor]() {
+        if (editor == currentEditor()) {
+            updateGui(editor);
+            ui->statusBar->refresh(editor);
+        }
+    });
+    connect(editor, &ScintillaNext::fileReadFailed, this, [this](const QString &message) {
+        QMessageBox::warning(this, tr("Error Reading File"), message);
+    });
     connect(editor, &ScintillaNext::renamed, this, [= ,this]() { detectLanguage(editor); });
-    connect(editor, &ScintillaNext::renamed, this, [=, this]() { updateFileStatusBasedUi(editor); });
+    connect(editor, &ScintillaNext::renamed, this, [this, editor]() {
+        if (editor == currentEditor())
+            updateFileStatusBasedUi(editor);
+    });
     connect(editor, &ScintillaNext::updateUi, this, &MainWindow::updateDocumentBasedUi);
 
     // Scintilla pastes the primary selection on middle-click. Suppress an

@@ -34,6 +34,20 @@ static QString RandomSessionFileName()
     return QUuid::createUuid().toString(QUuid::WithoutBraces);
 }
 
+static FileEncoding::Type sessionEncoding(QSettings &settings, const char *key,
+                                         FileEncoding::Type fallback)
+{
+    bool ok = false;
+    const int value = settings.value(QLatin1String(key)).toInt(&ok);
+    return ok && FileEncoding::isValid(value) ? static_cast<FileEncoding::Type>(value) : fallback;
+}
+
+static void restoreSessionEncoding(ScintillaNext *editor, QSettings &settings)
+{
+    editor->restoreEncoding(sessionEncoding(settings, "Encoding", editor->encoding()),
+                            sessionEncoding(settings, "SavedEncoding", editor->savedEncoding()));
+}
+
 // QList<int> cannot be automatically serialized to/from QSettings (i.e. QVariant) so turn it to a QVariantList
 static QVariantList QListToQVariantList(const QList<int> intList)
 {
@@ -76,7 +90,8 @@ QDir SessionManager::sessionDirectory() const
 
 void SessionManager::saveIntoSessionDirectory(ScintillaNext *editor, const QString &sessionFileName) const
 {
-    editor->saveCopyAs(sessionDirectory().filePath(sessionFileName));
+    if (editor->saveSessionCopy(sessionDirectory().filePath(sessionFileName)) != QFileDevice::NoError)
+        qWarning("Could not save session snapshot: %s", qUtf8Printable(editor->fileErrorString()));
 }
 
 SessionManager::SessionFileType SessionManager::determineType(ScintillaNext *editor) const
@@ -265,7 +280,9 @@ ScintillaNext* SessionManager::loadFileDetails(QSettings &settings)
     }
 
     if (QFileInfo::exists(filePath)) {
-        editor = ScintillaNext::fromFile(filePath);
+        const auto encoding = sessionEncoding(settings, "Encoding", FileEncoding::Auto);
+        editor = ScintillaNext::fromFile(filePath, false,
+                                       encoding == FileEncoding::Utf8 ? FileEncoding::Auto : encoding);
 
         if (editor == Q_NULLPTR) {
             qWarning("  could not be read from disk, ignoring this file for session loading");
@@ -291,6 +308,7 @@ void SessionManager::storeUnsavedFileDetails(ScintillaNext *editor, QSettings &s
     settings.setValue("Type", "UnsavedFile");
     settings.setValue("FilePath", editor->getFilePath());
     settings.setValue("SessionFileName", sessionFileName);
+    settings.setValue("SnapshotFormat", "InternalUtf8");
 
     storeEditorViewDetails(editor, settings);
 
@@ -315,7 +333,9 @@ ScintillaNext *SessionManager::loadUnsavedFileDetails(QSettings &settings)
     }
 
     if (QFileInfo::exists(filePath) && QFileInfo::exists(sessionFilePath)) {
-        ScintillaNext *editor = ScintillaNext::fromFile(sessionFilePath);
+        ScintillaNext *editor = settings.value("SnapshotFormat").toString() == QStringLiteral("InternalUtf8")
+            ? ScintillaNext::fromSessionFile(sessionFilePath)
+            : ScintillaNext::fromFile(sessionFilePath);
 
         if (editor == Q_NULLPTR) {
             qWarning("  could not be read from disk, ignoring this file for session loading");
@@ -325,6 +345,8 @@ ScintillaNext *SessionManager::loadUnsavedFileDetails(QSettings &settings)
         // Since this editor has different file path info, treat this as a temporary buffer
         editor->setFileInfo(filePath);
         editor->setTemporary(true);
+
+        restoreSessionEncoding(editor, settings);
 
         app->getEditorManager()->manageEditor(editor);
 
@@ -347,6 +369,7 @@ void SessionManager::storeTempFile(ScintillaNext *editor, QSettings &settings)
     settings.setValue("FileName", editor->getName());
     settings.setValue("SessionFileName", sessionFileName);
     settings.setValue("Language", editor->languageName);
+    settings.setValue("SnapshotFormat", "InternalUtf8");
 
     storeEditorViewDetails(editor, settings);
 
@@ -365,7 +388,9 @@ ScintillaNext *SessionManager::loadTempFile(QSettings &settings)
     qDebug("Session temp file: \"%s\"", qUtf8Printable(fullFilePath));
 
     if (QFileInfo::exists(fullFilePath)) {
-        ScintillaNext *editor = ScintillaNext::fromFile(fullFilePath, false);
+        ScintillaNext *editor = settings.value("SnapshotFormat").toString() == QStringLiteral("InternalUtf8")
+            ? ScintillaNext::fromSessionFile(fullFilePath)
+            : ScintillaNext::fromFile(fullFilePath, false);
 
         if (editor == Q_NULLPTR) {
             qWarning("  could not be read from disk, ignoring this file for session loading");
@@ -374,6 +399,8 @@ ScintillaNext *SessionManager::loadTempFile(QSettings &settings)
 
         editor->detachFileInfo(fileName);
         editor->setTemporary(true);
+
+        restoreSessionEncoding(editor, settings);
 
         app->getEditorManager()->manageEditor(editor);
 
@@ -394,6 +421,8 @@ ScintillaNext *SessionManager::loadTempFile(QSettings &settings)
 
 void SessionManager::storeEditorViewDetails(ScintillaNext *editor, QSettings &settings)
 {
+    settings.setValue("Encoding", static_cast<int>(editor->encoding()));
+    settings.setValue("SavedEncoding", static_cast<int>(editor->savedEncoding()));
     settings.setValue("FirstVisibleLine", static_cast<int>(editor->firstVisibleLine() + 1)); // Keep it 1-based in the settings just for human-readability
     settings.setValue("CurrentPosition", static_cast<int>(editor->currentPos()));
 

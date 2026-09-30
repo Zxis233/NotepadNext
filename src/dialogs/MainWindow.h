@@ -171,6 +171,9 @@ private:
         });
     }
     void applyStyleSheet();
+    void setupEncodingMenu();
+    void updateEncodingBasedUi(ScintillaNext *editor);
+    void changeEncoding(FileEncoding::Type encoding, bool reopen);
     void applyCustomShortcuts();
     void initUpdateCheck();
     ScintillaNext *getInitialEditor();
@@ -189,6 +192,8 @@ private:
     ISearchResultsHandler *determineSearchResultsHandler();
 
     QActionGroup *languageActionGroup;
+    QActionGroup *encodingActionGroup = nullptr;
+    QMenu *reopenEncodingMenu = nullptr;
 
     TabsQuickActionsBar *tabsQuickActionsBar = Q_NULLPTR;
 

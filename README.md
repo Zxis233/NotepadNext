@@ -72,7 +72,27 @@ the application interface, document syntax colors, and Lua console. Uncheck the
 option to restore the original colors. A user-provided `custom.css` can override
 the application interface colors.
 
+# File encodings
+
+The **Encoding** menu supports UTF-8, UTF-8 BOM, UTF-16 LE/BE BOM, GBK,
+and Shift_JIS. Each document keeps its own encoding; switching tabs updates
+the menu selection and status bar.
+
+- **Reopen with Encoding** reads the current file from disk again. Use it to
+  correct text displayed with the wrong encoding. Unsaved changes require
+  confirmation before they are discarded. A Unicode BOM takes precedence.
+- **Convert to Encoding** preserves the current text and selects the encoding
+  for the next save. Use **Save** or **Save All** to write the conversion.
+  Characters that cannot be represented without loss cause an error instead
+  of being replaced with question marks.
+
+Files without a BOM initially use UTF-8; GBK and Shift_JIS are selected manually.
+If the input is not valid UTF-8, its bytes are retained for reopening and saving
+is blocked until the original encoding is selected. Session restoration keeps
+each document's encoding and any pending encoding change.
+
 # Translations
+
 Translations are contributed by the community. All translations are managed using Crowdin at `https://crowdin.com/project/notepadnext`. If there is a language missing you would like to contribute, feel free to start a discussion on Crowdin.
 
 # Development

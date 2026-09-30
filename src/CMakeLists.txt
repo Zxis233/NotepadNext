@@ -3,6 +3,8 @@ qt_add_executable(NotepadNext
 	MACOSX_BUNDLE
 	ActionUtils.h
 	ApplicationSettings.h
+	FileEncoding.h
+	FileEncoding.cpp
 		Theme.h
 		Theme.cpp
 	ByteArrayUtils.h
@@ -231,6 +233,7 @@ endif()
 target_link_libraries(NotepadNext
     PRIVATE
         Qt6::Core
+        Qt6::Core5Compat
         Qt6::Gui
         Qt6::Widgets
         Qt6::Network

@@ -22,6 +22,7 @@
 
 #include "RangeAllocator.h"
 #include "ScintillaEdit.h"
+#include "FileEncoding.h"
 
 #include <QDateTime>
 #include <QFile>
@@ -43,7 +44,8 @@ public:
     explicit ScintillaNext(QString name, QWidget *parent = Q_NULLPTR);
     virtual ~ScintillaNext();
 
-    static ScintillaNext *fromFile(const QString &filePath, bool tryToCreate=false);
+    static ScintillaNext *fromFile(const QString &filePath, bool tryToCreate=false, FileEncoding::Type encoding=FileEncoding::Auto);
+    static ScintillaNext *fromSessionFile(const QString &filePath);
     static QString eolModeToString(int eolMode);
     static int stringToEolMode(QString eolMode);
 
@@ -117,7 +119,14 @@ public:
         Utf16BE
     };
 
-    BomType bom() const { return bomType; }
+    BomType bom() const;
+    FileEncoding::Type encoding() const { return fileEncoding; }
+    FileEncoding::Type savedEncoding() const { return diskEncoding; }
+    void setEncoding(FileEncoding::Type encoding);
+    void restoreEncoding(FileEncoding::Type encoding, FileEncoding::Type savedEncoding);
+    bool reloadWithEncoding(FileEncoding::Type encoding);
+    QString fileErrorString() const { return lastFileError; }
+    QFileDevice::FileError saveSessionCopy(const QString &path);
 
     bool isTemporary() const { return temporary; }
     void setTemporary(bool temp);
@@ -156,6 +165,8 @@ signals:
 
     void lexerChanged();
     void reloaded();
+    void encodingChanged();
+    void fileReadFailed(const QString &message);
 
 protected:
     void dragEnterEvent(QDragEnterEvent *event) override;
@@ -164,14 +175,16 @@ protected:
 private:
     QString name;
     BufferType bufferType = BufferType::New;
-    BomType bomType = BomType::None;
+    FileEncoding::Type fileEncoding = FileEncoding::Utf8;
+    FileEncoding::Type diskEncoding = FileEncoding::Utf8;
+    QString lastFileError;
     QFileInfo fileInfo;
     QDateTime modifiedTime;
     RangeAllocator indicatorResources;
 
     bool temporary = false; // Temporary file loaded from a session. It can either be a 'New' file or actual 'File'
 
-    bool readFromDisk(QFile &file);
+    bool readFromDisk(QFile &file, FileEncoding::Type encoding=FileEncoding::Auto, bool sessionSnapshot=false);
     QDateTime fileTimestamp();
     void updateTimestamp();
 

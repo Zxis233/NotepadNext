@@ -74,10 +74,12 @@ void EditorInfoStatusBar::connectToEditor(ScintillaNext *editor)
     // Remove any previous connections
     disconnect(editorUiUpdated);
     disconnect(documentLexerChanged);
+    disconnect(documentEncodingChanged);
 
     // Connect to the new editor
     editorUiUpdated = connect(editor, &ScintillaNext::updateUi, this, &EditorInfoStatusBar::editorUpdated);
     documentLexerChanged = connect(editor, &ScintillaNext::lexerChanged, this, [=, this]() { updateLanguage(editor); });
+    documentEncodingChanged = connect(editor, &ScintillaNext::encodingChanged, this, [this, editor]() { updateEncoding(editor); });
 
     refresh(editor);
 }
@@ -149,25 +151,7 @@ void EditorInfoStatusBar::updateEol(ScintillaNext *editor)
 
 void EditorInfoStatusBar::updateEncoding(ScintillaNext *editor)
 {
-    QString text;
-    switch(editor->codePage()) {
-    case 0:
-        text = tr("ANSI");
-        break;
-    case SC_CP_UTF8:
-        switch (editor->bom()) {
-        case ScintillaNext::BomType::None:    text = tr("UTF-8"); break;
-        case ScintillaNext::BomType::Utf8:    text = tr("UTF-8 BOM"); break;
-        case ScintillaNext::BomType::Utf16LE: text = tr("UTF-16LE BOM"); break;
-        case ScintillaNext::BomType::Utf16BE: text = tr("UTF-16BE BOM"); break;
-        }
-        break;
-    default:
-        text = QString::number(editor->codePage());
-        break;
-    }
-
-    unicodeType->setText(text);
+    unicodeType->setText(FileEncoding::name(editor->encoding()));
 }
 
 void EditorInfoStatusBar::updateOverType(ScintillaNext *editor)

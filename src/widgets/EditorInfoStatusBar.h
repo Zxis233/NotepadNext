@@ -63,6 +63,7 @@ private:
 
     QMetaObject::Connection editorUiUpdated;
     QMetaObject::Connection documentLexerChanged;
+    QMetaObject::Connection documentEncodingChanged;
 };
 
 #endif // EDITORINFOSTATUSBAR_H
