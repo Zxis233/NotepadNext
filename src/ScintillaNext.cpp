@@ -753,9 +753,9 @@ void ScintillaNext::setFileInfo(const QString &filePath)
 
 void ScintillaNext::detachFileInfo(const QString &newName)
 {
-    setName(newName);
-
     bufferType = ScintillaNext::New;
+    // renamed observers must see the new buffer type, not the old file path.
+    setName(newName);
 }
 
 void ScintillaNext::setTemporary(bool temp)

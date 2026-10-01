@@ -40,6 +40,7 @@ private:
 
     void applyTabFont(ads::CDockWidget *dockWidget);
     void updateTabFonts();
+    void updateTabTitles(const ScintillaNext *excludedEditor = nullptr);
 
 public:
     explicit DockedEditor(ApplicationSettings *settings, QWidget *parent);

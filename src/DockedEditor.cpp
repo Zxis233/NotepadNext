@@ -31,6 +31,8 @@
 
 #include <QUuid>
 #include <QFont>
+#include <QDir>
+#include <QHash>
 
 
 class DockedEditorComponentsFactory : public ads::CDockComponentsFactory
@@ -129,6 +131,66 @@ void DockedEditor::updateTabFonts()
             if (auto dockWidget = qobject_cast<ads::CDockWidget *>(editor->parentWidget()))
                 applyTabFont(dockWidget);
         }
+    }
+}
+
+void DockedEditor::updateTabTitles(const ScintillaNext *excludedEditor)
+{
+    // Use all dock areas, including inactive tabs and split views. Recompute
+    // from the original names so suffixes disappear when a conflict is gone.
+    const auto openEditors = editors();
+    QHash<QString, QVector<ScintillaNext *>> groups;
+    const auto nameKey = [](const QString &name) {
+#ifdef Q_OS_WIN
+        return name.toCaseFolded();
+#else
+        return name;
+#endif
+    };
+    for (auto editor : openEditors) {
+        if (editor && editor != excludedEditor && editor->isFile())
+            groups[nameKey(editor->getName())].append(editor);
+    }
+
+    const auto parentSuffix = [](const ScintillaNext *editor, int depth) {
+        const QString path = editor->getFileInfo().absolutePath();
+        if (QDir(path).isRoot())
+            return QDir::toNativeSeparators(path);
+        const QStringList parts = QDir::fromNativeSeparators(path).split('/', Qt::SkipEmptyParts);
+        return QDir::toNativeSeparators(parts.mid(qMax(0, int(parts.size()) - depth)).join('/'));
+    };
+
+    for (auto editor : openEditors) {
+        if (!editor || editor == excludedEditor)
+            continue;
+        auto dockWidget = qobject_cast<ads::CDockWidget *>(editor->parentWidget());
+        if (!dockWidget)
+            continue;
+
+        QString title = editor->getName();
+        const auto group = groups.value(nameKey(title));
+        if (editor->isFile() && group.size() > 1) {
+            int depth = 1;
+            QString suffix = parentSuffix(editor, depth);
+            while (true) {
+                bool ambiguous = false;
+                for (auto other : group) {
+                    if (other != editor && nameKey(parentSuffix(other, depth)) == nameKey(suffix)) {
+                        ambiguous = true;
+                        break;
+                    }
+                }
+                if (!ambiguous)
+                    break;
+                const QString longer = parentSuffix(editor, ++depth);
+                if (longer == suffix)
+                    break; // Already using the whole parent path.
+                suffix = longer;
+            }
+            title += QStringLiteral(" \u00b7 ") + suffix;
+        }
+        dockWidget->setWindowTitle(title);
+        dockWidget->tabWidget()->setToolTip(editor->isFile() ? editor->getFilePath() : editor->getName());
     }
 }
 
@@ -244,6 +306,8 @@ void DockedEditor::addEditor(ScintillaNext *editor)
     connect(editor, &ScintillaNext::closed, this, [this, editor]() {
         if (currentEditor == editor)
             currentEditor.clear();
+        // Exclude explicitly: dock removal/deletion may still be pending.
+        updateTabTitles(editor);
         emit editorClosed(editor);
     });
     connect(editor, &ScintillaNext::renamed, this, [=, this]() { editorRenamed(editor); });
@@ -252,6 +316,7 @@ void DockedEditor::addEditor(ScintillaNext *editor)
 
     latestDockArea = dockManager->addDockWidget(ads::CenterDockWidgetArea, dockWidget, currentDockArea());
 
+    updateTabTitles();
     emit editorAdded(editor);
 }
 
@@ -259,16 +324,7 @@ void DockedEditor::editorRenamed(ScintillaNext *editor)
 {
     Q_ASSERT(editor != Q_NULLPTR);
 
-    ads::CDockWidget *dockWidget = qobject_cast<ads::CDockWidget *>(editor->parentWidget());
-
-    dockWidget->setWindowTitle(editor->getName());
-
-    if (editor->isFile()) {
-        dockWidget->tabWidget()->setToolTip(editor->getFilePath());
-    }
-    else {
-        dockWidget->tabWidget()->setToolTip(editor->getName());
-    }
+    updateTabTitles();
 }
 
 void DockedEditor::splitToRight(ScintillaNext *editor)
