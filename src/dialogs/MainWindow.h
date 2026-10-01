@@ -137,6 +137,10 @@ signals:
     void fileDialogAccepted(const QString &filePath);
 
 protected:
+#ifdef Q_OS_WIN
+    bool event(QEvent *event) override;
+    bool nativeEvent(const QByteArray &eventType, void *message, qintptr *result) override;
+#endif
     void closeEvent(QCloseEvent *event) override;
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dropEvent(QDropEvent *event) override;
@@ -171,6 +175,9 @@ private:
         });
     }
     void applyStyleSheet();
+#ifdef Q_OS_WIN
+    void applyNativeTheme();
+#endif
     void setupEncodingMenu();
     void updateEncodingBasedUi(ScintillaNext *editor);
     void changeEncoding(FileEncoding::Type encoding, bool reopen);

@@ -19,6 +19,7 @@
 
 #include "ScintillaNext.h"
 #include "FileEncodingHistory.h"
+#include "Theme.h"
 #include "Finder.h"
 #include "ScintillaCommenter.h"
 
@@ -29,6 +30,7 @@
 #include <QMouseEvent>
 #include <QSaveFile>
 #include <QSignalBlocker>
+#include <QPalette>
 
 
 static QFileDevice::FileError writeBytes(const QByteArray &data, const QString &path, QString &error)
@@ -70,6 +72,17 @@ ScintillaNext::ScintillaNext(QString name, QWidget *parent) :
     name(name),
     indicatorResources(INDICATOR_MAX + 1)
 {
+    // Match the application palette from construction, before file loading,
+    // docking or language setup can expose Scintilla's default white surface.
+    // EditorManager will install the full font and language styles later.
+    const int background = Theme::scintillaColour(palette().color(QPalette::Base).rgb());
+    const int foreground = Theme::scintillaColour(palette().color(QPalette::Text).rgb());
+    styleSetBack(STYLE_DEFAULT, background);
+    styleSetFore(STYLE_DEFAULT, foreground);
+    styleClearAll();
+    setFoldMarginColour(true, background);
+    setFoldMarginHiColour(true, background);
+
     // Per the scintilla documentation, some parts of the range are not generally available
     setCodePage(SC_CP_UTF8);
     indicatorResources.disableRange(0, 7);

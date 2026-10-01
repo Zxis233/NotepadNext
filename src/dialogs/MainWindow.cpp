@@ -43,10 +43,12 @@
 #include <QScreen>
 #include <QFontDatabase>
 #include <QPointer>
+#include <QEvent>
 
 #ifdef Q_OS_WIN
 #include <QSimpleUpdater.h>
 #include <Windows.h>
+#include <dwmapi.h>
 #endif
 
 #include "DockAreaWidget.h"
@@ -106,6 +108,10 @@ MainWindow::MainWindow(NotepadNextApplication *app) :
     qInfo(Q_FUNC_INFO);
 
     setAttribute(Qt::WA_DeleteOnClose);
+    setAutoFillBackground(true);
+#ifdef Q_OS_WIN
+    connect(app, &NotepadNextApplication::themeApplied, this, &MainWindow::applyNativeTheme);
+#endif
 
     ui->setupUi(this);
 
@@ -2180,6 +2186,53 @@ ISearchResultsHandler *MainWindow::determineSearchResultsHandler()
         return findChild<SearchResultsDock *>();
     }
 }
+
+#ifdef Q_OS_WIN
+void MainWindow::applyNativeTheme()
+{
+    // Do not create an HWND just to change its theme. WinIdChange and Show
+    // apply this before the existing native window becomes visible.
+    if (!internalWinId() || !app)
+        return;
+    const HWND hwnd = reinterpret_cast<HWND>(internalWinId());
+    const BOOL dark = app->isDarkTheme();
+    // DWMWA_USE_IMMERSIVE_DARK_MODE. The numeric value also builds with SDKs
+    // predating the enum; unsupported Windows versions simply reject it.
+    constexpr DWORD immersiveDarkMode = 20;
+    DwmSetWindowAttribute(hwnd, immersiveDarkMode, &dark, sizeof(dark));
+}
+
+bool MainWindow::event(QEvent *event)
+{
+    if (event->type() == QEvent::WinIdChange || event->type() == QEvent::Show)
+        applyNativeTheme();
+    return QMainWindow::event(event);
+}
+
+bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr *result)
+{
+    const auto msg = static_cast<MSG *>(message);
+    if (msg->message == WM_ERASEBKGND && msg->wParam) {
+        // Notepad3 sets a themed class background brush before showing its
+        // window. Qt owns a shared window class, so fill per HWND instead of
+        // changing that class for every Qt window/dialog in the process.
+        const QColor background = palette().color(QPalette::Window);
+        RECT client;
+        if (GetClientRect(msg->hwnd, &client)) {
+            const HBRUSH brush = CreateSolidBrush(RGB(background.red(), background.green(), background.blue()));
+            if (brush) {
+                const bool filled = FillRect(reinterpret_cast<HDC>(msg->wParam), &client, brush) != 0;
+                DeleteObject(brush);
+                if (filled) {
+                    *result = 1;
+                    return true;
+                }
+            }
+        }
+    }
+    return QMainWindow::nativeEvent(eventType, message, result);
+}
+#endif
 
 void MainWindow::restoreWindowState()
 {
