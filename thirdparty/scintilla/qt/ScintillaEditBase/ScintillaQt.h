@@ -160,7 +160,7 @@ private:
 	static sptr_t DirectStatusFunction(sptr_t ptr,
 				     unsigned int iMessage, uptr_t wParam, sptr_t lParam, int *pStatus);
 
-	void SetScaleProperty();
+	bool SetScaleProperty();
 	bool IsPixelAlignedScale() const noexcept {
 		return scaleTechnique == ScaleTechnique::PixelAligned;
 	}

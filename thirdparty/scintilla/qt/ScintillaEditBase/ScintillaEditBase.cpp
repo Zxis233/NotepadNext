@@ -124,6 +124,9 @@ bool ScintillaEditBase::event(QEvent *event)
 	} else if (event->type() == QEvent::Show) {
 		setMouseTracking(true);
 		result = QAbstractScrollArea::event(event);
+		// Styles may have been measured before this editor joined its screen.
+		sqt->SetScaleProperty();
+		sqt->InvalidateStyleRedraw();
 	} else if (event->type() == QEvent::Hide) {
 		setMouseTracking(false);
 		result = QAbstractScrollArea::event(event);

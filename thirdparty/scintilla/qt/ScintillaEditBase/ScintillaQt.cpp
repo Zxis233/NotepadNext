@@ -22,6 +22,7 @@
 #include <QTextCodec>
 #include <QScrollBar>
 #include <QTimer>
+#include <QVariant>
 
 using namespace Scintilla;
 using namespace Scintilla::Internal;
@@ -845,21 +846,28 @@ sptr_t ScintillaQt::DirectStatusFunction(
 	return returnValue;
 }
 
-void ScintillaQt::SetScaleProperty()
+bool ScintillaQt::SetScaleProperty()
 {
 	qreal scale = 0.0;
 	if (scaleTechnique == ScaleTechnique::PixelAligned) {
 		QWidget *widget = window(wMain.GetID());
 		scale = widget->devicePixelRatioF();
 	}
-	scrollArea->viewport()->setProperty("ScintillaScale", scale);
+	QWidget *viewport = scrollArea->viewport();
+	const QVariant previousScale = viewport->property("ScintillaScale");
+	viewport->setProperty("ScintillaScale", scale);
+	return !previousScale.isValid() || previousScale.toDouble() != scale;
 }
 
 // Additions to merge in Scientific Toolworks widget structure
 
 void ScintillaQt::PartialPaint(const PRectangle &rect)
 {
-	SetScaleProperty();
+	// Reparenting or a screen change can alter the scale without a DPR event.
+	// Discard metrics calculated with the old scale before painting any text.
+	if (SetScaleProperty()) {
+		InvalidateStyleRedraw();
+	}
 	if (scaleTechnique == ScaleTechnique::PixelAligned) {
 		QWidget *widget = window(wMain.GetID());
 		rcPaint = rect * widget->devicePixelRatioF();
