@@ -33,6 +33,7 @@
 #include <QStyleFactory>
 #include <QPalette>
 #include <QStyleHints>
+#include <QSettings>
 
 #include "LuaState.h"
 #include "lua.hpp"
@@ -296,6 +297,19 @@ void NotepadNextApplication::updateTheme()
     case Qt::ColorScheme::Light: systemDarkTheme = false; break;
     default: break; // Unknown: retain the last known system preference.
     }
+#endif
+    // On Windows, Qt's initial color scheme may not have caught up with the
+    // system preference yet. Read the app theme synchronously before the
+    // first window is created, and again on subsequent theme notifications.
+    // Use AppsUseLightTheme, not SystemUsesLightTheme (taskbar/shell theme).
+#ifdef Q_OS_WIN
+    const QSettings personalization(
+        QStringLiteral("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize"),
+        QSettings::NativeFormat);
+    bool validPreference = false;
+    const int appsUseLightTheme = personalization.value(QStringLiteral("AppsUseLightTheme")).toInt(&validPreference);
+    if (validPreference && (appsUseLightTheme == 0 || appsUseLightTheme == 1))
+        systemDarkTheme = appsUseLightTheme == 0;
 #endif
     const auto mode = settings->themeMode();
     darkTheme = mode == ApplicationSettings::DarkTheme ||
