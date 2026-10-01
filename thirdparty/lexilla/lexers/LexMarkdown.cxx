@@ -491,6 +491,12 @@ void ColorizeMarkdownDoc(Sci_PositionU startPos, Sci_Position length, int initSt
     sc.Complete();
 }
 
+void FoldMarkdownDoc(Sci_PositionU startPos, Sci_Position length, int,
+                     WordList **, Accessor &styler) {
+    if (styler.GetPropertyInt("lexer.markdown.gfm", 0))
+        MarkdownGFM::FoldHeadings(startPos, length, styler);
 }
 
-extern const LexerModule lmMarkdown(SCLEX_MARKDOWN, ColorizeMarkdownDoc, "markdown");
+}
+
+extern const LexerModule lmMarkdown(SCLEX_MARKDOWN, ColorizeMarkdownDoc, "markdown", FoldMarkdownDoc);

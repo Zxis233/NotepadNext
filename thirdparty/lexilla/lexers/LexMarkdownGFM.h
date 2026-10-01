@@ -289,6 +289,63 @@ std::string Line(Accessor &styler, Sci_Position line) {
     return styler.GetRange(styler.LineStart(line), styler.LineEnd(line));
 }
 
+// Only top-level headings create sections. Heading styles already exclude
+// fenced code and math, while checking the first token excludes containers.
+int HeadingLevel(Accessor &styler, Sci_Position line) {
+    const std::string text = Line(styler, line);
+    const size_t first = SkipSpace(text);
+    if (first == text.size() || first > 3 || text.find('\t') < first)
+        return 0;
+    const int style = styler.StyleAt(styler.LineStart(line) + first);
+    if (style < SCE_MARKDOWN_HEADER1 || style > SCE_MARKDOWN_HEADER6)
+        return 0;
+    // A setext underline belongs to the preceding title, not a new section.
+    if (Setext(text) && line > 0 && styler.GetLineState(line - 1) == Paragraph)
+        return 0;
+    return style - SCE_MARKDOWN_HEADER1 + 1;
+}
+
+void FoldHeadings(Sci_PositionU startPos, Sci_Position length, Accessor &styler) {
+    if (!styler.GetPropertyInt("fold", 0))
+        return;
+    const Sci_Position requestedEnd = static_cast<Sci_Position>(startPos) + length;
+    const Sci_Position lastLine = styler.GetLine(styler.Length());
+    Sci_Position line = styler.GetLine(startPos);
+    if (line > 0)
+        --line; // The previous heading's fold button may have changed.
+    if (line > 0 && styler.GetLineState(line - 1) == Paragraph && Setext(Line(styler, line)))
+        --line; // Section content after a setext title starts two lines later.
+    int sectionLevel = line > 0 ? FoldLevelStart(styler.LevelAt(line - 1)) : SC_FOLDLEVELBASE;
+    sectionLevel = std::max(sectionLevel, SC_FOLDLEVELBASE);
+
+    for (; line <= lastLine; ++line) {
+        const int heading = HeadingLevel(styler, line);
+        const int level = heading ? SC_FOLDLEVELBASE + heading - 1 : sectionLevel;
+        if (heading)
+            sectionLevel = level + 1;
+        int foldLevel = FoldLevelForCurrentNext(level, sectionLevel);
+        if (heading) {
+            Sci_Position contentLine = line + 1;
+            // An underline alone is not section content; keep empty headings
+            // without a button, including at EOF and before a sibling heading.
+            if (contentLine <= lastLine && styler.GetLineState(line) == Paragraph &&
+                Setext(Line(styler, contentLine)))
+                ++contentLine;
+            if (contentLine <= lastLine && styler.LineStart(contentLine) < styler.Length()) {
+                const int nextHeading = HeadingLevel(styler, contentLine);
+                if (!nextHeading || nextHeading > heading)
+                    foldLevel |= SC_FOLDLEVELHEADERFLAG;
+            }
+        }
+        const int oldLevel = styler.LevelAt(line);
+        styler.SetLevelIfDifferent(line, foldLevel);
+        // A changed heading level propagates through its section, then stops
+        // when the outgoing level matches the previously calculated context.
+        if (styler.LineStart(line + 1) >= requestedEnd && FoldLevelStart(oldLevel) == sectionLevel)
+            break;
+    }
+}
+
 void Colourise(Sci_PositionU startPos, Sci_Position length, Accessor &styler) {
     if (length <= 0)
         return;
@@ -298,6 +355,8 @@ void Colourise(Sci_PositionU startPos, Sci_Position length, Accessor &styler) {
     Sci_Position line = styler.GetLine(startPos);
     if (line > 0)
         --line;
+    const Sci_Position foldStart = styler.LineStart(line);
+    Sci_Position styledEnd = foldStart;
     int state = line > 0 ? styler.GetLineState(line - 1) : 0;
     const Sci_Position lastLine = styler.GetLine(styler.Length());
     const bool fillHeading = styler.GetPropertyInt("lexer.markdown.header.eolfill", 0) != 0;
@@ -436,12 +495,16 @@ void Colourise(Sci_PositionU startPos, Sci_Position length, Accessor &styler) {
         }
         const int oldState = styler.GetLineState(line);
         styler.SetLineState(line, state);
+        styledEnd = nextStart;
         // Propagate changes past the requested range until the outgoing state
         // converges. This also fixes stale highlighting after deleting a fence.
         if (nextStart >= requestedEnd && state == oldState)
             break;
     }
     styler.Flush();
+    // Lex and Fold callbacks receive the same original range. If a fence edit
+    // extended colouring beyond that range, folding must cover it as well.
+    FoldHeadings(foldStart, styledEnd - foldStart, styler);
 }
 
 } // namespace MarkdownGFM

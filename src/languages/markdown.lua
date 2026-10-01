@@ -2,8 +2,6 @@ local L = {}
 
 L.lexer = "markdown"
 
-L.disableFoldMargin = true
-
 L.properties = {
     -- Apply heading styles to the complete ATX heading, not just its '#' prefix.
     ["lexer.markdown.header.eolfill"] = "1",

@@ -34,15 +34,25 @@ Syntax rules are based on the [GFM specification](https://github.github.com/gfm/
 Math syntax follows [GitHub's mathematical expressions documentation](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/writing-mathematical-expressions).
 Unclosed math blocks extend to EOF, like unclosed code fences.
 
+With `fold=1`, top-level ATX and single-line setext headings fold their sections
+through the next heading of the same or a higher level. Nested headings retain
+their heading levels for the existing fold-by-level commands. Empty sections
+have no fold button. Setext underlines belong to the title rather than starting
+another section. Code/math blocks, quotes and lists do not create fold headers.
+Folding follows the actual recolouring range when block edits change which
+lines are headings, and propagates section levels until the old context converges.
+
 This is source highlighting, not a full GFM renderer. Embedded code languages,
 HTML blocks, indented code blocks, multiline inline constructs, multiline
 setext headings, full nested emphasis rules, automatic URL recognition and
 fences/tables/math blocks inside continued list or quote containers are not implemented.
 
-The test executable uses the actual bundled lexer and checks token styles,
-LF/CRLF, missing final newline, byte-range restarts, same-length edits (with
-stale styles/states retained), and alternating documents. It does not simulate
-inserting/deleting whole lines; those interactions still need application QA.
+The test executable uses the actual bundled lexer and checks token styles and
+fold levels, LF/CRLF, missing final newline, byte-range restarts, same-length
+edits (with stale styles/states retained), and alternating documents. Its edit
+model also shifts styles and per-line metadata for line insertions/deletions.
+Actual margin clicks, hidden-line visibility and edit notifications still need
+application QA.
 
 To build and run later, from the repository root with a C++20 toolchain:
 

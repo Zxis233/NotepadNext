@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "ILexer.h"
+#include "Scintilla.h"
 #include "SciLexer.h"
 #include "Lexilla.h"
 #include "TestDocument.h"
@@ -17,6 +18,16 @@ namespace {
 // newline. Its LineEnd then drops the last byte; use the real line contents.
 class Document : public TestDocument {
 public:
+    Sci_Position SCI_METHOD LineFromPosition(Sci_Position pos) const override {
+        if (pos >= Length() && Length() > 0) {
+            char last = 0;
+            GetCharRange(&last, Length() - 1, 1);
+            if (last != '\n')
+                return TestDocument::LineFromPosition(Length() - 1);
+        }
+        return TestDocument::LineFromPosition(pos);
+    }
+
     Sci_Position SCI_METHOD LineEnd(Sci_Position line) const override {
         Sci_Position pos = LineStart(line);
         char ch = 0;
@@ -28,6 +39,39 @@ public:
         }
         return pos;
     }
+
+    // Preserve styles and shift per-line metadata like an edited document,
+    // instead of discarding the stale context before incremental lexing.
+    void Replace(size_t pos, size_t removed, std::string_view replacement) {
+        std::string source(BufferPointer(), Length());
+        std::string styles(source.size(), '\0');
+        for (size_t i = 0; i < styles.size(); ++i)
+            styles[i] = StyleAt(i);
+        const Sci_Position editedLine = LineFromPosition(pos);
+        const Sci_Position oldLast = LineFromPosition(Length());
+        std::vector<int> states, levels;
+        for (Sci_Position line = 0; line <= oldLast; ++line) {
+            states.push_back(GetLineState(line));
+            levels.push_back(GetLevel(line));
+        }
+        source.replace(pos, removed, replacement);
+        styles.replace(pos, removed, replacement.size(), '\0');
+        Set(source);
+        const Sci_Position added = LineFromPosition(Length()) - oldLast;
+        if (added > 0) {
+            states.insert(states.begin() + editedLine + 1, added, 0);
+            levels.insert(levels.begin() + editedLine + 1, added, SC_FOLDLEVELBASE);
+        } else if (added < 0) {
+            states.erase(states.begin() + editedLine + 1, states.begin() + editedLine + 1 - added);
+            levels.erase(levels.begin() + editedLine + 1, levels.begin() + editedLine + 1 - added);
+        }
+        StartStyling(0);
+        SetStyles(styles.size(), styles.data());
+        for (size_t line = 0; line < states.size(); ++line) {
+            SetLineState(line, states[line]);
+            SetLevel(line, levels[line]);
+        }
+    }
 };
 
 void Require(bool condition, const std::string &message) {
@@ -38,16 +82,34 @@ void Require(bool condition, const std::string &message) {
 }
 
 void Lex(Scintilla::ILexer5 *lexer, Document &doc, Sci_Position start = 0, Sci_Position length = -1) {
-    lexer->Lex(start, length < 0 ? doc.Length() - start : length,
-        start ? doc.StyleAt(start - 1) : 0, &doc);
+    const Sci_Position size = length < 0 ? doc.Length() - start : length;
+    const int initStyle = start ? doc.StyleAt(start - 1) : 0;
+    lexer->Lex(start, size, initStyle, &doc);
+    lexer->Fold(start, size, initStyle, &doc);
 }
 
 void Equal(const Document &a, const Document &b, const std::string &name) {
     Require(a.Length() == b.Length(), name + ": length");
     for (Sci_Position pos = 0; pos < a.Length(); ++pos)
         Require(a.StyleAt(pos) == b.StyleAt(pos), name + ": style at " + std::to_string(pos));
-    for (Sci_Position line = 0; line < a.LineFromPosition(a.Length()); ++line)
-        Require(a.GetLineState(line) == b.GetLineState(line), name + ": line state " + std::to_string(line));
+    for (Sci_Position line = 0; line <= a.LineFromPosition(a.Length()); ++line) {
+        if (a.LineStart(line) < a.Length())
+            Require(a.GetLineState(line) == b.GetLineState(line), name + ": line state " + std::to_string(line));
+        Require(a.GetLevel(line) == b.GetLevel(line), name + ": fold level " + std::to_string(line));
+    }
+}
+
+void ExpectFolds(Scintilla::ILexer5 *lexer, std::string_view source, const std::vector<int> &levels) {
+    Document doc;
+    doc.Set(source);
+    Lex(lexer, doc);
+    const Sci_Position contentLines = source.empty() ? 1 : doc.LineFromPosition(doc.Length() - 1) + 1;
+    Require(levels.size() == static_cast<size_t>(contentLines), "Wrong fold expectation count");
+    for (size_t line = 0; line < levels.size(); ++line) {
+        const int actual = doc.GetLevel(line) & (SC_FOLDLEVELNUMBERMASK | SC_FOLDLEVELHEADERFLAG);
+        Require(actual == SC_FOLDLEVELBASE + levels[line], "Wrong fold at line " + std::to_string(line) +
+            " in " + std::string(source));
+    }
 }
 
 void Expect(Scintilla::ILexer5 *lexer, std::string_view source, std::string_view token, int style, size_t from = 0) {
@@ -75,6 +137,23 @@ void Edited(Scintilla::ILexer5 *lexer, std::string source, size_t pos, std::stri
     Equal(full, incremental, "edit");
 }
 
+void EditedLines(Scintilla::ILexer5 *lexer, std::string source, size_t pos, size_t removed,
+                 std::string_view replacement) {
+    Document incremental;
+    incremental.Set(source);
+    Lex(lexer, incremental);
+    incremental.Replace(pos, removed, replacement);
+    source.replace(pos, removed, replacement);
+    // Deleting the last section content can leave a zero-length EOF request.
+    const Sci_Position start = std::min(pos, source.size());
+    Lex(lexer, incremental, start, std::min<Sci_Position>(
+        std::max<size_t>(1, replacement.size()), incremental.Length() - start));
+    Document full;
+    full.Set(source);
+    Lex(lexer, full);
+    Equal(full, incremental, "line insertion/deletion in " + source);
+}
+
 } // namespace
 
 int main() {
@@ -83,6 +162,28 @@ int main() {
     Require(lexer != nullptr, "Markdown lexer missing");
     lexer->PropertySet("lexer.markdown.gfm", "1");
     lexer->PropertySet("lexer.markdown.header.eolfill", "1");
+    lexer->PropertySet("fold", "1");
+
+    constexpr int header = SC_FOLDLEVELHEADERFLAG;
+    ExpectFolds(lexer.get(), "# A\nintro\n## B\nbody\n#### D\nbody\n## C\nbody\n# E\nend",
+        {header, 1, header | 1, 2, header | 3, 4, header | 1, 2, header, 1});
+    ExpectFolds(lexer.get(), "# A\r\n## B\r\n### C\r\n#### D\r\n##### E\r\n###### F\r\nbody\r\n# G\r\nend\r\n",
+        {header, header | 1, header | 2, header | 3, header | 4, header | 5, 6, header, 1});
+    ExpectFolds(lexer.get(), "# A\n## B\n## C\n# D", {header, 1, 1, 0});
+    ExpectFolds(lexer.get(), "A\n===\nintro\nB\n---\nbody\nC\n===\nlast",
+        {header, 1, 1, header | 1, 2, 2, header, 1, 1});
+    ExpectFolds(lexer.get(), "A\n===\nB\n===\n", {0, 1, 0, 1});
+    ExpectFolds(lexer.get(), "   ###### Deep\nbody", {header | 5, 6});
+    ExpectFolds(lexer.get(), "# Real\n```\n# code\n```\n$$\n# math\n$$\n> # quote\n- ## item\n"
+        "    # indented\n#hashtag\n####### invalid\n\\# escaped\n# Next\ntext",
+        {header, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, header, 1});
+    ExpectFolds(lexer.get(), "```\n# code\n```\n$$\n# math\n$$\n", {0, 0, 0, 0, 0, 0});
+    ExpectFolds(lexer.get(), "# Empty", {0});
+    ExpectFolds(lexer.get(), "# Empty\n", {0});
+    ExpectFolds(lexer.get(), "", {0});
+    lexer->PropertySet("fold", "0");
+    ExpectFolds(lexer.get(), "# Disabled\ntext\n", {0, 0});
+    lexer->PropertySet("fold", "1");
 
     Expect(lexer.get(), "# Heading\n", "# Heading", SCE_MARKDOWN_HEADER1);
     Expect(lexer.get(), "   ###### Heading\n", "###### Heading", SCE_MARKDOWN_HEADER6);
@@ -202,6 +303,20 @@ int main() {
     Edited(lexer.get(), "text\nxx\n# inside\n$$\nafter\n", 5, "$$");
     Edited(lexer.get(), "```text\nx * y\n```\nafter\n", 3, "math");
     Edited(lexer.get(), "$$x\ny$$\nafter\n", 6, "  ");
+    Edited(lexer.get(), "# Root\n## Child\nbody\n## Peer\nbody\n# End\ntext", 7, "# ");
+    Edited(lexer.get(), "## Root\n#  Child\nbody\n### Deep\nbody\n## Peer\ntext", 8, "##");
+    Edited(lexer.get(), "Title\n===\nbody\n## Child\nbody\n# Next\ntext", 6, "---");
+    EditedLines(lexer.get(), "# Root\nbody\n# Next\ntext", 7, 0, "## Child\nchild body\n");
+    EditedLines(lexer.get(), "# Root\n## Child\nbody\n# Next\ntext", 7, 9, "");
+    EditedLines(lexer.get(), "# Root\ntext\n# Next\nbody", 12, 0, "```\n");
+    EditedLines(lexer.get(), "# Root\n```\n# code\n```\n# Next\nbody", 18, 4, "");
+    EditedLines(lexer.get(), "# Root\ntext\n# Next\nbody", 12, 0, "$$\n");
+    EditedLines(lexer.get(), "# Root\nbody\n", 7, 5, "");
+    EditedLines(lexer.get(), "# Root\nbody", 7, 4, "");
+    EditedLines(lexer.get(), "# Root\n", 0, 7, "");
+    EditedLines(lexer.get(), "Title\nbody\n# Next\ntext", 6, 0, "===\n");
+    EditedLines(lexer.get(), "Title\n===\nbody\n# Next\ntext", 6, 4, "");
+    EditedLines(lexer.get(), "Title\n===\nbody\n", 10, 5, "");
 
     // The same lexer instance alternates between documents, just as tabs do.
     Document a, b, expected;

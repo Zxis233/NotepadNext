@@ -87,6 +87,11 @@ Markdown headings share one color across all six levels. Code and GitHub-style
 math expressions use distinct existing palette colors, including inline math,
 `$$` blocks and `math` fences.
 
+Markdown headings can fold their sections from the left margin or the existing
+folding commands. A section includes its subheadings and ends before the next
+heading of the same or a higher level. Top-level ATX (`#` through `######`) and
+setext headings are supported; heading text inside code and math blocks is ignored.
+
 Changes take effect immediately across all document tabs and the Lua console,
 and the selected mode is remembered across restarts. Follow system also reacts
 to system appearance changes while the application is running on Qt 6.5 or later
