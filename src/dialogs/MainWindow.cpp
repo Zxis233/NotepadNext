@@ -2206,31 +2206,41 @@ bool MainWindow::event(QEvent *event)
 {
     if (event->type() == QEvent::WinIdChange || event->type() == QEvent::Show)
         applyNativeTheme();
-    return QMainWindow::event(event);
-}
 
-bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr *result)
-{
-    const auto msg = static_cast<MSG *>(message);
-    if (msg->message == WM_ERASEBKGND && msg->wParam) {
-        // Notepad3 sets a themed class background brush before showing its
-        // window. Qt owns a shared window class, so fill per HWND instead of
-        // changing that class for every Qt window/dialog in the process.
-        const QColor background = palette().color(QPalette::Window);
-        RECT client;
-        if (GetClientRect(msg->hwnd, &client)) {
-            const HBRUSH brush = CreateSolidBrush(RGB(background.red(), background.green(), background.blue()));
-            if (brush) {
-                const bool filled = FillRect(reinterpret_cast<HDC>(msg->wParam), &client, brush) != 0;
-                DeleteObject(brush);
-                if (filled) {
-                    *result = 1;
-                    return true;
-                }
-            }
+    if (event->type() == QEvent::Show && !initialShowHandled && !isMinimized()) {
+        initialShowHandled = true;
+        if (app && app->isDarkTheme()) {
+            // Show is delivered before the native window is made visible.
+            // Qt still exposes/paints an opacity-zero window: defer presentation
+            // until the first backing-store frame, including child widgets.
+            initialWindowOpacity = windowOpacity();
+            initialFramePending = true;
+            setWindowOpacity(0.0);
         }
     }
-    return QMainWindow::nativeEvent(eventType, message, result);
+
+    const bool handled = QMainWindow::event(event);
+    if (initialFramePending && (event->type() == QEvent::Hide ||
+        (event->type() == QEvent::WindowStateChange && isMinimized()))) {
+        // Do not leave a hidden/minimized window transparent on later restore.
+        initialFramePending = false;
+        setWindowOpacity(initialWindowOpacity);
+    } else if (initialFramePending && !initialFrameQueued && event->type() == QEvent::Paint) {
+        initialFrameQueued = true;
+        // The parent's Paint event precedes its children's painting and the
+        // backing-store flush. Return to the event loop before revealing it.
+        QTimer::singleShot(0, this, [this]() {
+            initialFrameQueued = false;
+            if (!initialFramePending)
+                return;
+            initialFramePending = false;
+            // Include any layout/theme updates queued during the first paint.
+            // This is synchronous and is not a nested processEvents() loop.
+            repaint();
+            setWindowOpacity(initialWindowOpacity);
+        });
+    }
+    return handled;
 }
 #endif
 

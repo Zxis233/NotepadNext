@@ -139,7 +139,6 @@ signals:
 protected:
 #ifdef Q_OS_WIN
     bool event(QEvent *event) override;
-    bool nativeEvent(const QByteArray &eventType, void *message, qintptr *result) override;
 #endif
     void closeEvent(QCloseEvent *event) override;
     void dragEnterEvent(QDragEnterEvent *event) override;
@@ -177,6 +176,10 @@ private:
     void applyStyleSheet();
 #ifdef Q_OS_WIN
     void applyNativeTheme();
+    bool initialShowHandled = false;
+    bool initialFramePending = false;
+    bool initialFrameQueued = false;
+    qreal initialWindowOpacity = 1.0;
 #endif
     void setupEncodingMenu();
     void updateEncodingBasedUi(ScintillaNext *editor);

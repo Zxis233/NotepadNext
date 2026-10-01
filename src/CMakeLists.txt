@@ -220,7 +220,7 @@ target_include_directories(NotepadNext
 )
 
 if(WIN32)
-	target_link_libraries(NotepadNext PRIVATE dwmapi gdi32 user32)
+	target_link_libraries(NotepadNext PRIVATE dwmapi user32)
 	configure_file(
 		"${CMAKE_SOURCE_DIR}/deploy/windows/version.rc.in"
 		"${CMAKE_BINARY_DIR}/version.rc"
