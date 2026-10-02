@@ -80,6 +80,8 @@ public:
     void modifyFoldLevels(int level, int action);
     void foldAllLevels(int level);
     void unFoldAllLevels(int level);
+    void unfoldAllExceptSelected();
+    void foldAllExceptSelected();
 
     void deleteLeadingEmptyLines();
     void deleteTrailingEmptyLines();
@@ -188,6 +190,7 @@ private:
     bool readFromDisk(QFile &file, FileEncoding::Type encoding=FileEncoding::Auto, bool sessionSnapshot=false);
     QDateTime fileTimestamp();
     void updateTimestamp();
+    void setFoldsExceptSelected(bool expand);
 
 };
 

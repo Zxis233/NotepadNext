@@ -31,6 +31,8 @@
 #include <QSaveFile>
 #include <QSignalBlocker>
 #include <QPalette>
+#include <QVector>
+#include <QPair>
 
 
 static QFileDevice::FileError writeBytes(const QByteArray &data, const QString &path, QString &error)
@@ -282,6 +284,70 @@ void ScintillaNext::foldAllLevels(int level)
 void ScintillaNext::unFoldAllLevels(int level)
 {
     modifyFoldLevels(level, SC_FOLDACTION_EXPAND);
+}
+
+void ScintillaNext::unfoldAllExceptSelected()
+{
+    setFoldsExceptSelected(true);
+}
+
+void ScintillaNext::foldAllExceptSelected()
+{
+    setFoldsExceptSelected(false);
+}
+
+void ScintillaNext::setFoldsExceptSelected(bool expand)
+{
+    // Idle styling may not have calculated folds outside the visible area yet.
+    colourise(0, -1);
+
+    QVector<QPair<sptr_t, sptr_t>> protectedRegions;
+    for (sptr_t selection = 0; selection < selections(); ++selection) {
+        // Match VS Code: use each selection's start, also for reversed ranges.
+        sptr_t header = lineFromPosition(selectionNStart(selection));
+        if (!(foldLevel(header) & SC_FOLDLEVELHEADERFLAG))
+            header = foldParent(header);
+        if (header >= 0) {
+            const QPair<sptr_t, sptr_t> region(header, lastChild(header, -1));
+            if (!protectedRegions.contains(region))
+                protectedRegions.append(region);
+        }
+    }
+
+    sptr_t topDocumentLine = docLineFromVisible(firstVisibleLine());
+    sptr_t topWrapOffset = firstVisibleLine() - visibleFromDocLine(topDocumentLine);
+    // Visit parents before children; hidden children only need their saved
+    // expanded state changed, without revealing a protected parent.
+    for (sptr_t line = 0; line < lineCount(); ++line) {
+        if (!(foldLevel(line) & SC_FOLDLEVELHEADERFLAG) || foldExpanded(line) == expand)
+            continue;
+        const sptr_t end = lastChild(line, -1);
+        bool protectedRegion = false;
+        for (const auto &region : protectedRegions) {
+            if ((line <= region.first && end >= region.second) ||
+                (line >= region.first && end <= region.second)) {
+                protectedRegion = true;
+                break;
+            }
+        }
+        if (protectedRegion)
+            continue;
+
+        if (lineVisible(line))
+            foldLine(line, expand ? SC_FOLDACTION_EXPAND : SC_FOLDACTION_CONTRACT);
+        else
+            // FoldLine on a hidden header reveals its parents and moves the
+            // caret. Only update its state while its protected parent is shut.
+            setFoldExpanded(line, expand);
+    }
+    // The former top line may now be hidden. Anchor to its nearest visible
+    // fold header instead, without reopening that fold to restore scrolling.
+    while (topDocumentLine >= 0 && !lineVisible(topDocumentLine)) {
+        topDocumentLine = foldParent(topDocumentLine);
+        topWrapOffset = 0;
+    }
+    if (topDocumentLine >= 0)
+        setFirstVisibleLine(visibleFromDocLine(topDocumentLine) + topWrapOffset);
 }
 
 void ScintillaNext::deleteLeadingEmptyLines()

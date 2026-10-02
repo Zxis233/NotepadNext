@@ -1506,6 +1506,14 @@
       <translation>全部展开</translation>
     </message>
     <message>
+      <source>Unfold All Except Selected</source>
+      <translation>展开除所选区域之外的所有区域</translation>
+    </message>
+    <message>
+      <source>Fold All Except Selected</source>
+      <translation>折叠除所选区域之外的所有区域</translation>
+    </message>
+    <message>
       <location filename="../src/dialogs/MainWindow.ui" line="1335"/>
       <source>Fold Level 5</source>
       <translation>折叠第 5 层</translation>

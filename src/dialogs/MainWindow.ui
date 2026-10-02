@@ -309,6 +309,8 @@
     <addaction name="separator"/>
     <addaction name="actionFoldAll"/>
     <addaction name="actionUnfoldAll"/>
+    <addaction name="actionUnfoldAllExceptSelected"/>
+    <addaction name="actionFoldAllExceptSelected"/>
     <addaction name="menuFold_Level"/>
     <addaction name="menuUnfold_Level"/>
     <addaction name="separator"/>
@@ -1313,6 +1315,22 @@
    </property>
    <property name="shortcut">
     <string notr="true">Ctrl+K, Ctrl+J</string>
+   </property>
+  </action>
+  <action name="actionUnfoldAllExceptSelected">
+   <property name="text">
+    <string>Unfold All Except Selected</string>
+   </property>
+   <property name="shortcut">
+    <string notr="true">Ctrl+K, Ctrl+=</string>
+   </property>
+  </action>
+  <action name="actionFoldAllExceptSelected">
+   <property name="text">
+    <string>Fold All Except Selected</string>
+   </property>
+   <property name="shortcut">
+    <string notr="true">Ctrl+K, Ctrl+-</string>
    </property>
   </action>
   <action name="actionFoldLevel5">
