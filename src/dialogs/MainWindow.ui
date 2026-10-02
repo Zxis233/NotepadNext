@@ -583,7 +583,7 @@
     <string>Save &amp;As...</string>
    </property>
    <property name="shortcut">
-    <string notr="true">Ctrl+Alt+S</string>
+    <string notr="true">Ctrl+Shift+S</string>
    </property>
   </action>
   <action name="actionSaveCopyAs">
@@ -598,9 +598,6 @@
    </property>
    <property name="text">
     <string>Sav&amp;e All</string>
-   </property>
-   <property name="shortcut">
-    <string notr="true">Ctrl+Shift+S</string>
    </property>
   </action>
   <action name="actionSelectAll">
@@ -730,9 +727,6 @@
    </property>
    <property name="toolTip">
     <string>Close All files</string>
-   </property>
-   <property name="shortcut">
-    <string notr="true">Ctrl+Shift+W</string>
    </property>
   </action>
   <action name="actionCloseAllExceptActive">
@@ -865,6 +859,9 @@
    </property>
    <property name="text">
     <string>Word Wrap</string>
+   </property>
+   <property name="shortcut">
+    <string notr="true">Alt+Z</string>
    </property>
   </action>
   <action name="actionRestoreRecentlyClosedFile">
@@ -1076,9 +1073,6 @@
   <action name="actionSingleLineComment">
    <property name="text">
     <string>Single Line Comment</string>
-   </property>
-   <property name="shortcut">
-    <string notr="true">Ctrl+K</string>
    </property>
   </action>
   <action name="actionSingleLineUncomment">
@@ -1310,7 +1304,7 @@
     <string>Fold All</string>
    </property>
    <property name="shortcut">
-    <string notr="true">Alt+0</string>
+    <string notr="true">Ctrl+K, Ctrl+0</string>
    </property>
   </action>
   <action name="actionUnfoldAll">
@@ -1318,7 +1312,7 @@
     <string>Unfold All</string>
    </property>
    <property name="shortcut">
-    <string notr="true">Alt+Shift+0</string>
+    <string notr="true">Ctrl+K, Ctrl+J</string>
    </property>
   </action>
   <action name="actionFoldLevel5">
