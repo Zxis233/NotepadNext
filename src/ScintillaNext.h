@@ -157,6 +157,8 @@ public slots:
     void commentLineSelection();
     void uncommentLineSelection();
 
+    void convertIndentation(bool toTabs);
+
     void removeDuplicateLines();
     void removeConsecutiveDuplicateLines();
 

@@ -22,6 +22,7 @@
 #include "Theme.h"
 #include "Finder.h"
 #include "ScintillaCommenter.h"
+#include "UndoAction.h"
 
 #include "ByteArrayUtils.h"
 #include <cinttypes>
@@ -704,6 +705,36 @@ void ScintillaNext::uncommentLineSelection()
 {
     ScintillaCommenter sc(this);
     sc.uncommentSelection();
+}
+
+void ScintillaNext::convertIndentation(bool toTabs)
+{
+    if (readOnly())
+        return;
+
+    const auto tabSize = tabWidth();
+    if (tabSize <= 0)
+        return;
+
+    const UndoAction ua(this);
+    for (sptr_t line = 0; line < lineCount(); ++line) {
+        const auto start = positionFromLine(line);
+        const auto end = lineIndentPosition(line);
+        if (start == end)
+            continue;
+
+        // Preserve visual indentation, including mixed tabs and spaces.
+        const auto columns = lineIndentation(line);
+        const QByteArray indentation = toTabs
+            ? QByteArray(columns / tabSize, '\t') + QByteArray(columns % tabSize, ' ')
+            : QByteArray(columns, ' ');
+
+        if (textRange(start, end) == indentation)
+            continue;
+
+        setTargetRange(start, end);
+        replaceTarget(indentation.length(), indentation.constData());
+    }
 }
 
 void ScintillaNext::removeDuplicateLines()

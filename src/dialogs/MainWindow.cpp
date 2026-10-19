@@ -389,6 +389,8 @@ MainWindow::MainWindow(NotepadNextApplication *app) :
 
     connectEditorAction(ui->actionIncreaseIndent, &ScintillaNext::tab);
     connectEditorAction(ui->actionDecreaseIndent, &ScintillaNext::backTab);
+    connectEditorAction(ui->actionConvertIndentationToSpaces, &ScintillaNext::convertIndentation, false);
+    connectEditorAction(ui->actionConvertSpacesToIndentation, &ScintillaNext::convertIndentation, true);
 
     addAction(ui->actionToggleOverType);
     connect(ui->actionToggleOverType, &QAction::triggered, this, [this]() {

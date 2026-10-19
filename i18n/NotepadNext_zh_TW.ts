@@ -1054,6 +1054,14 @@
       <translation>減少縮排</translation>
     </message>
     <message>
+      <source>Convert Indentation to Spaces</source>
+      <translation>將縮排轉換為空格</translation>
+    </message>
+    <message>
+      <source>Convert Spaces to Indentation</source>
+      <translation>將空格轉換為縮排</translation>
+    </message>
+    <message>
       <location filename="../src/dialogs/MainWindow.ui" line="635"/>
       <source>Rename...</source>
       <translation>重新命名...</translation>

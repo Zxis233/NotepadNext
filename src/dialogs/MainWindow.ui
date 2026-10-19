@@ -110,6 +110,9 @@
      </property>
      <addaction name="actionIncreaseIndent"/>
      <addaction name="actionDecreaseIndent"/>
+     <addaction name="separator"/>
+     <addaction name="actionConvertIndentationToSpaces"/>
+     <addaction name="actionConvertSpacesToIndentation"/>
     </widget>
     <widget class="QMenu" name="menuEOLConversion">
      <property name="title">
@@ -626,6 +629,16 @@
    </property>
    <property name="text">
     <string>Decrease Indent</string>
+   </property>
+  </action>
+  <action name="actionConvertIndentationToSpaces">
+   <property name="text">
+    <string>Convert Indentation to Spaces</string>
+   </property>
+  </action>
+  <action name="actionConvertSpacesToIndentation">
+   <property name="text">
+    <string>Convert Spaces to Indentation</string>
    </property>
   </action>
   <action name="actionRename">
