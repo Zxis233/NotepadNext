@@ -75,6 +75,7 @@
     <addaction name="actionOpen"/>
     <addaction name="actionOpenFolderasWorkspace"/>
     <addaction name="actionReload"/>
+    <addaction name="actionLogMonitoring"/>
     <addaction name="actionSave"/>
     <addaction name="actionSaveAs"/>
     <addaction name="actionSaveCopyAs"/>
@@ -653,6 +654,14 @@
    </property>
    <property name="text">
     <string>Re&amp;load</string>
+   </property>
+  </action>
+  <action name="actionLogMonitoring">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Log Monitoring</string>
    </property>
   </action>
   <action name="actionWindows">

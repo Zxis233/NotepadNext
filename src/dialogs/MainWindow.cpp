@@ -21,6 +21,7 @@
 #include "BookMarkDecorator.h"
 #include "DefaultDirectoryManager.h"
 #include "MarkerAppDecorator.h"
+#include "LogMonitor.h"
 #include "ScintillaSorter.h"
 #include "URLFinder.h"
 #include "SessionManager.h"
@@ -43,6 +44,7 @@
 #include <QScreen>
 #include <QFontDatabase>
 #include <QPointer>
+#include <QScopedValueRollback>
 #include <QEvent>
 
 #ifdef Q_OS_WIN
@@ -97,6 +99,11 @@
 
 #include "ActionUtils.h"
 
+static LogMonitor *logMonitorFor(ScintillaNext *editor)
+{
+    return editor ? editor->findChild<LogMonitor *>(QString(), Qt::FindDirectChildrenOnly) : nullptr;
+}
+
 
 MainWindow::MainWindow(NotepadNextApplication *app) :
     ui(new Ui::MainWindow),
@@ -134,6 +141,8 @@ MainWindow::MainWindow(NotepadNextApplication *app) :
     connect(ui->actionNew, &QAction::triggered, this, &MainWindow::newFile);
     connect(ui->actionOpen, &QAction::triggered, this, &MainWindow::openFileDialog);
     connect(ui->actionReload, &QAction::triggered, this, &MainWindow::reloadFile);
+    connect(ui->actionLogMonitoring, &QAction::triggered, this, &MainWindow::toggleLogMonitoring);
+    ui->actionLogMonitoring->setEnabled(false);
     connect(ui->actionClose, &QAction::triggered, this, &MainWindow::closeCurrentFile);
     connect(ui->actionCloseAll, &QAction::triggered, this, &MainWindow::closeAllFiles);
     connect(ui->actionExit, &QAction::triggered, this, &MainWindow::close);
@@ -1340,8 +1349,9 @@ void MainWindow::updateEncodingBasedUi(ScintillaNext *editor)
 {
     ui->menuEncodings->setEnabled(editor != nullptr);
     reopenEncodingMenu->setEnabled(editor && editor->isFile() && editor->getFileInfo().exists());
+    const auto monitor = logMonitorFor(editor);
     for (auto action : encodingActionGroup->actions()) {
-        action->setEnabled(editor != nullptr);
+        action->setEnabled(editor && !(monitor && monitor->isEnabled()));
         action->setChecked(editor && action->data().toInt() == static_cast<int>(editor->encoding()));
     }
 }
@@ -1351,6 +1361,9 @@ void MainWindow::changeEncoding(FileEncoding::Type encoding, bool reopen)
     // Keep the original target across modal dialogs, even if focus changes.
     QPointer<ScintillaNext> editor = currentEditor();
     if (!editor)
+        return;
+    const auto monitor = logMonitorFor(editor);
+    if (!reopen && monitor && monitor->isEnabled())
         return;
 
     if (reopen) {
@@ -1395,6 +1408,75 @@ void MainWindow::reloadFile()
     if (reply == QMessageBox::Yes) {
         editor->reload();
     }
+}
+
+void MainWindow::toggleLogMonitoring(bool enable)
+{
+    QPointer<ScintillaNext> editor = currentEditor();
+    LogMonitor *monitor = logMonitorFor(editor);
+    if (!editor || !monitor || !editor->isFile()) {
+        updateLogMonitoringUi(currentEditor());
+        return;
+    }
+    if (!enable) {
+        monitor->stop();
+        updateLogMonitoringUi(currentEditor());
+        return;
+    }
+
+    // Modal save prompts can cause an application-focus check. Do not open a
+    // second external-change prompt while this choice is being made.
+    QScopedValueRollback<bool> starting(startingLogMonitor, true);
+    const auto state = editor->checkFileForStateChange();
+    if (!QFileInfo(editor->getFileInfo().filePath()).isFile()) {
+        QMessageBox::warning(this, tr("Log Monitoring"), tr("The file is no longer available."));
+        updateLogMonitoringUi(currentEditor());
+        return;
+    }
+
+    if (editor->canSaveToDisk()) {
+        if (state == ScintillaNext::Modified || state == ScintillaNext::Restored) {
+            QMessageBox::warning(this, tr("Log Monitoring"),
+                tr("The file has changed on disk and has unsaved changes. Save a copy or resolve the changes before starting log monitoring."));
+            updateLogMonitoringUi(currentEditor());
+            return;
+        }
+        const auto reply = QMessageBox::question(this, tr("Log Monitoring"),
+            tr("Save changes to <b>%1</b> before starting log monitoring?").arg(editor->getName().toHtmlEscaped()),
+            QMessageBox::Save | QMessageBox::Cancel, QMessageBox::Cancel);
+        if (!editor || reply != QMessageBox::Save) {
+            updateLogMonitoringUi(currentEditor());
+            return;
+        }
+        // The disk file can change while the save question is visible.
+        const auto latestState = editor->checkFileForStateChange();
+        if (latestState == ScintillaNext::Modified || latestState == ScintillaNext::Deleted ||
+            latestState == ScintillaNext::Restored ||
+            !QFileInfo(editor->getFileInfo().filePath()).isFile()) {
+            QMessageBox::warning(this, tr("Log Monitoring"),
+                tr("The file has changed on disk and has unsaved changes. Save a copy or resolve the changes before starting log monitoring."));
+            updateLogMonitoringUi(currentEditor());
+            return;
+        }
+        if (!saveFile(editor) || !editor) {
+            updateLogMonitoringUi(currentEditor());
+            return;
+        }
+        monitor = logMonitorFor(editor);
+    }
+    if (!monitor || !monitor->start())
+        QMessageBox::warning(this, tr("Log Monitoring"), tr("Unable to start log monitoring for this file."));
+    updateLogMonitoringUi(currentEditor());
+}
+
+void MainWindow::updateLogMonitoringUi(ScintillaNext *editor)
+{
+    const auto monitor = logMonitorFor(editor);
+    const bool enabled = monitor && monitor->isEnabled();
+    const bool available = editor && editor->isFile() &&
+        (enabled || QFileInfo(editor->getFileInfo().filePath()).isFile());
+    ui->actionLogMonitoring->setEnabled(available);
+    ui->actionLogMonitoring->setChecked(enabled);
 }
 
 void MainWindow::closeCurrentFile()
@@ -1783,6 +1865,7 @@ void MainWindow::updateFileStatusBasedUi(ScintillaNext *editor)
     setWindowTitle(title);
 
     ui->actionReload->setEnabled(isFile);
+    updateLogMonitoringUi(editor);
     ui->actionMoveToTrash->setEnabled(isFile);
     ui->actionCopyFullPath->setEnabled(isFile);
     ui->actionCopyFileDirectory->setEnabled(isFile);
@@ -1948,11 +2031,14 @@ void MainWindow::activateEditor(ScintillaNext *editor)
 
     if (!editor) {
         updateEncodingBasedUi(nullptr);
+        updateLogMonitoringUi(nullptr);
         return;
     }
 
     checkFileForModification(editor);
     updateGui(editor);
+    if (auto monitor = logMonitorFor(editor); monitor && !monitor->statusText().isEmpty())
+        ui->statusBar->showMessage(monitor->statusText(), 8000);
 
     emit editorActivated(editor);
 }
@@ -2058,6 +2144,13 @@ void MainWindow::bringWindowToForeground()
 bool MainWindow::checkFileForModification(ScintillaNext *editor)
 {
     qInfo(Q_FUNC_INFO);
+
+    if (startingLogMonitor)
+        return false;
+    if (auto monitor = logMonitorFor(editor); monitor && monitor->isEnabled()) {
+        monitor->checkNow();
+        return false;
+    }
 
     auto state = editor->checkFileForStateChange();
 
@@ -2281,6 +2374,18 @@ void MainWindow::focusIn()
 void MainWindow::addEditor(ScintillaNext *editor)
 {
     qInfo(Q_FUNC_INFO);
+
+    auto monitor = new LogMonitor(editor);
+    connect(monitor, &LogMonitor::enabledChanged, this, [this, editor]() {
+        if (editor == currentEditor()) {
+            updateLogMonitoringUi(editor);
+            updateEncodingBasedUi(editor);
+        }
+    });
+    connect(monitor, &LogMonitor::notice, this, [this, editor](const QString &message) {
+        if (editor == currentEditor())
+            ui->statusBar->showMessage(message, 8000);
+    });
 
     detectLanguage(editor);
 

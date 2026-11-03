@@ -184,12 +184,15 @@ private:
     void setupEncodingMenu();
     void updateEncodingBasedUi(ScintillaNext *editor);
     void changeEncoding(FileEncoding::Type encoding, bool reopen);
+    void toggleLogMonitoring(bool enabled);
+    void updateLogMonitoringUi(ScintillaNext *editor);
     void applyCustomShortcuts();
     void initUpdateCheck();
     ScintillaNext *getInitialEditor();
     void openFileList(const QStringList &fileNames);
     bool checkEditorsBeforeClose(const QVector<ScintillaNext *> &editors);
     bool checkFileForModification(ScintillaNext *editor);
+    bool startingLogMonitor = false;
     void showSaveErrorMessage(ScintillaNext *editor, QFileDevice::FileError error);
     void showEditorZoomLevelIndicator();
 

@@ -787,6 +787,26 @@
   <context>
     <name>MainWindow</name>
     <message>
+      <source>Log Monitoring</source>
+      <translation>日誌監視模式</translation>
+    </message>
+    <message>
+      <source>The file is no longer available.</source>
+      <translation>檔案已無法使用。</translation>
+    </message>
+    <message>
+      <source>The file has changed on disk and has unsaved changes. Save a copy or resolve the changes before starting log monitoring.</source>
+      <translation>磁碟上的檔案已變更，目前文件也有未儲存的修改。請先另存副本或解決衝突，再啟用日誌監視。</translation>
+    </message>
+    <message>
+      <source>Save changes to &lt;b&gt;%1&lt;/b&gt; before starting log monitoring?</source>
+      <translation>啟用日誌監視前，是否儲存對 &lt;b&gt;%1&lt;/b&gt; 的修改？</translation>
+    </message>
+    <message>
+      <source>Unable to start log monitoring for this file.</source>
+      <translation>無法為此檔案啟用日誌監視。</translation>
+    </message>
+    <message>
       <location filename="../src/dialogs/MainWindow.ui" line="17"/>
       <source>Notepad Next[*]</source>
       <translation>Notepad Next[*]</translation>
@@ -2182,6 +2202,29 @@
       <location filename="../src/widgets/TabsQuickActionsBar.cpp" line="49"/>
       <source>Close the current file</source>
       <translation>關閉目前檔案</translation>
+    </message>
+  </context>
+  <context>
+    <name>LogMonitor</name>
+    <message>
+      <source>Log file is unavailable; waiting for it to reappear.</source>
+      <translation>日誌檔案暫時無法使用，正在等待檔案重新出現。</translation>
+    </message>
+    <message>
+      <source>Log monitoring paused: turn it off and save the document's changes.</source>
+      <translation>日誌監視已暫停：請關閉監視並儲存文件的修改。</translation>
+    </message>
+    <message>
+      <source>Cannot read the log file; retrying: %1</source>
+      <translation>無法讀取日誌檔案，正在重試：%1</translation>
+    </message>
+    <message>
+      <source>Log following paused. Scroll back to the end to resume.</source>
+      <translation>已暫停追隨日誌末尾。捲回末尾後將自動恢復。</translation>
+    </message>
+    <message>
+      <source>Log following resumed.</source>
+      <translation>已恢復追隨日誌末尾。</translation>
     </message>
   </context>
 </TS>

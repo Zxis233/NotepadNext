@@ -797,6 +797,26 @@
   <context>
     <name>MainWindow</name>
     <message>
+      <source>Log Monitoring</source>
+      <translation>日志监视模式</translation>
+    </message>
+    <message>
+      <source>The file is no longer available.</source>
+      <translation>文件已不可用。</translation>
+    </message>
+    <message>
+      <source>The file has changed on disk and has unsaved changes. Save a copy or resolve the changes before starting log monitoring.</source>
+      <translation>磁盘上的文件已更改，当前文档也有未保存的修改。请先另存副本或解决冲突，再开启日志监视。</translation>
+    </message>
+    <message>
+      <source>Save changes to &lt;b&gt;%1&lt;/b&gt; before starting log monitoring?</source>
+      <translation>开启日志监视前，是否保存对 &lt;b&gt;%1&lt;/b&gt; 的修改？</translation>
+    </message>
+    <message>
+      <source>Unable to start log monitoring for this file.</source>
+      <translation>无法为此文件开启日志监视。</translation>
+    </message>
+    <message>
       <location filename="../src/dialogs/MainWindow.ui" line="17"/>
       <source>Notepad Next[*]</source>
       <translation>Notepad Next[*]</translation>
@@ -2740,6 +2760,29 @@
       <location filename="../src/LanguageStylesModel.cpp"/>
       <source>False</source>
       <translation>否</translation>
+    </message>
+  </context>
+  <context>
+    <name>LogMonitor</name>
+    <message>
+      <source>Log file is unavailable; waiting for it to reappear.</source>
+      <translation>日志文件暂不可用，正在等待文件重新出现。</translation>
+    </message>
+    <message>
+      <source>Log monitoring paused: turn it off and save the document's changes.</source>
+      <translation>日志监视已暂停：请关闭监视并保存文档的修改。</translation>
+    </message>
+    <message>
+      <source>Cannot read the log file; retrying: %1</source>
+      <translation>无法读取日志文件，正在重试：%1</translation>
+    </message>
+    <message>
+      <source>Log following paused. Scroll back to the end to resume.</source>
+      <translation>已暂停追随日志末尾。滚回末尾后将自动恢复。</translation>
+    </message>
+    <message>
+      <source>Log following resumed.</source>
+      <translation>已恢复追随日志末尾。</translation>
     </message>
   </context>
 </TS>
