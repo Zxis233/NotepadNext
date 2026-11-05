@@ -1,0 +1,11 @@
+/* Applied after ADS's light/dark stylesheet, including after theme changes. */
+ads--CDockWidgetTab {
+    padding-top: 2px;
+    padding-bottom: 2px;
+    /* Reserve the same top edge for every tab so activation keeps its size. */
+    border-top: 2px solid transparent;
+}
+
+ads--CDockWidgetTab[activeTab="true"] {
+    border-top-color: #ff9800;
+}

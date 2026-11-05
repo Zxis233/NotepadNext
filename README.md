@@ -100,7 +100,9 @@ report a color scheme, the initial system palette provides the fallback.
 A user-provided `custom.css` can override the application interface colors.
 
 Document tabs use a flat appearance with blue focus highlighting and borderless
-close icons. Tab styling is consistent at startup and when switching themes.
+close icons. Rows have extra vertical padding, and the selected file in each
+split view has an orange top edge. Tab styling is consistent at startup and
+when switching themes.
 
 Under **Settings > Preferences > Default Font**, **Tab title font** selects
 the default interface font or the editor's configured font family. Tab titles

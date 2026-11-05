@@ -14,9 +14,11 @@ else()
 endif()
 
 add_executable(WrappedTabsTest WrappedTabsTest.cpp
-    ../../src/ApplicationSettings.cpp ../../src/ApplicationSettings.h)
+    ../../src/ApplicationSettings.cpp ../../src/ApplicationSettings.h
+    ../../src/widgets/EditorDockManager.cpp ../../src/widgets/EditorDockManager.h
+    ../../src/stylesheets/DocumentTabStyles.qrc)
 # Keep standard output available for CTest when using Qt Widgets on Windows.
-set_target_properties(WrappedTabsTest PROPERTIES WIN32_EXECUTABLE FALSE)
+set_target_properties(WrappedTabsTest PROPERTIES WIN32_EXECUTABLE FALSE AUTORCC ON)
 target_include_directories(WrappedTabsTest PRIVATE ../../src ../../src/widgets)
 target_compile_definitions(WrappedTabsTest PRIVATE
     NOTEPADNEXT_TEST_STYLESHEET="${CMAKE_CURRENT_SOURCE_DIR}/../../src/stylesheets/npp.css")

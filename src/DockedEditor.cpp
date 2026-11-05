@@ -26,6 +26,7 @@
 #include "DockAreaTitleBar.h"
 #include "ElidingLabel.h"
 #include "ApplicationSettings.h"
+#include "EditorDockManager.h"
 
 #include "ScintillaNext.h"
 
@@ -69,9 +70,8 @@ DockedEditor::DockedEditor(ApplicationSettings *settings, QWidget *parent) : QOb
     ads::CDockManager::setConfigFlag(ads::CDockManager::MiddleMouseButtonClosesTab, true);
     ads::CDockManager::setConfigFlag(ads::CDockManager::DockAreaHasTabsMenuButton, false);
 
-    // Keep ADS's palette-aware tab style from startup, so theme switches do
-    // not replace a different initial appearance.
-    dockManager = new ads::CDockManager(parent);
+    // Keep ADS's palette-aware style and our tab overrides through theme changes.
+    dockManager = new EditorDockManager(parent);
 
     connect(settings, &ApplicationSettings::tabUseEditorFontChanged, this, &DockedEditor::updateTabFonts);
     connect(settings, &ApplicationSettings::fontNameChanged, this, &DockedEditor::updateTabFonts);

@@ -6,6 +6,7 @@
 
 #include "ApplicationSettings.h"
 #include "WrappingTabLayout.h"
+#include "EditorDockManager.h"
 #include "DockAreaTabBar.h"
 #include "DockAreaTitleBar.h"
 #include "DockAreaWidget.h"
@@ -37,7 +38,7 @@ public:
 
     TabsWindow()
     {
-        manager = new ads::CDockManager(this);
+        manager = new EditorDockManager(this);
         connect(manager, &ads::CDockManager::dockAreaCreated, this, [](ads::CDockAreaWidget *area) {
             area->titleBar()->tabBar()->setTabsWrapping(true);
         });

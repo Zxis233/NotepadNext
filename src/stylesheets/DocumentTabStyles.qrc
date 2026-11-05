@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/stylesheets">
+        <file alias="document-tabs.css">document-tabs.css</file>
+    </qresource>
+</RCC>

@@ -60,6 +60,7 @@ qt_add_executable(NotepadNext
 	ZoomEventWatcher.h
 	resources.qrc
 	scripts.qrc
+	stylesheets/DocumentTabStyles.qrc
 	ApplicationSettings.cpp
 	ColorPickerDelegate.cpp
 	ComboBoxDelegate.cpp
@@ -181,6 +182,8 @@ qt_add_executable(NotepadNext
 	docks/SearchResultsDock.ui
     widgets/EditorInfoStatusBar.cpp
 	widgets/EditorInfoStatusBar.h
+	widgets/EditorDockManager.cpp
+	widgets/EditorDockManager.h
 	widgets/FadingIndicator.cpp
 	widgets/FadingIndicator.h
 	widgets/QuickFindWidget.cpp
