@@ -2292,6 +2292,16 @@
   <context>
     <name>PreferencesDialog</name>
     <message>
+      <location filename="../src/dialogs/PreferencesDialog.ui"/>
+      <source>Wrap tabs into multiple rows</source>
+      <translation>标签页自动换行</translation>
+    </message>
+    <message>
+      <location filename="../src/dialogs/PreferencesDialog.ui"/>
+      <source>Automatically wrap document tabs when they do not fit on one row.</source>
+      <translation>一行放不下时，将文件标签页自动排列为多行。</translation>
+    </message>
+    <message>
       <location filename="../src/dialogs/PreferencesDialog.ui" line="14"/>
       <source>Preferences</source>
       <translation>偏好设置</translation>

@@ -99,11 +99,24 @@ when the platform reports them. On older Qt versions or platforms that do not
 report a color scheme, the initial system palette provides the fallback.
 A user-provided `custom.css` can override the application interface colors.
 
+Document tabs use a flat appearance with blue focus highlighting and borderless
+close icons. Tab styling is consistent at startup and when switching themes.
+
 Under **Settings > Preferences > Default Font**, **Tab title font** selects
 the default interface font or the editor's configured font family. Tab titles
 keep the interface font size, independently of the editor's font size.
 The choice is remembered and updates all document tabs immediately, including
 tabs in split views. New and restored tabs use the same setting.
+
+Document tabs wrap onto multiple rows by default. Each split view wraps its own
+tabs as its width changes. Under **Settings > Preferences**, disable
+**Wrap tabs into multiple rows** to return to the single scrolling row; the
+choice takes effect immediately and is remembered across restarts. Titles keep
+their natural width, with ellipsis only when one title is wider than the whole
+row; hover to see the full file path. Tab dragging works across rows, and
+dragging outside the tab bar keeps the existing docking behavior. If many rows
+would occupy more than half an editor area, the tab bar scrolls vertically and
+keeps the selected tab visible.
 
 # File encodings
 

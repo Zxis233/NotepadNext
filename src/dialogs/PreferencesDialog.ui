@@ -135,6 +135,16 @@
         </layout>
        </item>
        <item>
+        <widget class="QCheckBox" name="checkBoxWrapTabs">
+         <property name="text">
+          <string>Wrap tabs into multiple rows</string>
+         </property>
+         <property name="toolTip">
+          <string>Automatically wrap document tabs when they do not fit on one row.</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QCheckBox" name="checkBoxExitOnLastTabClosed">
          <property name="text">
           <string>Exit on last tab closed</string>

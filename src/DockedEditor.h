@@ -40,6 +40,7 @@ private:
 
     void applyTabFont(ads::CDockWidget *dockWidget);
     void updateTabFonts();
+    void updateTabWrapping();
     void updateTabTitles(const ScintillaNext *excludedEditor = nullptr);
 
 public:

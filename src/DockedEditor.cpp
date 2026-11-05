@@ -69,11 +69,13 @@ DockedEditor::DockedEditor(ApplicationSettings *settings, QWidget *parent) : QOb
     ads::CDockManager::setConfigFlag(ads::CDockManager::MiddleMouseButtonClosesTab, true);
     ads::CDockManager::setConfigFlag(ads::CDockManager::DockAreaHasTabsMenuButton, false);
 
+    // Keep ADS's palette-aware tab style from startup, so theme switches do
+    // not replace a different initial appearance.
     dockManager = new ads::CDockManager(parent);
-    dockManager->setStyleSheet("");
 
     connect(settings, &ApplicationSettings::tabUseEditorFontChanged, this, &DockedEditor::updateTabFonts);
     connect(settings, &ApplicationSettings::fontNameChanged, this, &DockedEditor::updateTabFonts);
+    connect(settings, &ApplicationSettings::wrapTabsChanged, this, &DockedEditor::updateTabWrapping);
 
     connect(dockManager, &ads::CDockManager::focusedDockWidgetChanged, this, [=, this](ads::CDockWidget* old, ads::CDockWidget* now) {
         Q_UNUSED(old)
@@ -88,6 +90,7 @@ DockedEditor::DockedEditor(ApplicationSettings *settings, QWidget *parent) : QOb
     });
 
     connect(dockManager, &ads::CDockManager::dockAreaCreated, this, [=, this](ads::CDockAreaWidget* DockArea) {
+        DockArea->titleBar()->tabBar()->setTabsWrapping(settings->wrapTabs());
         DockedEditorTitleBar *titleBar = qobject_cast<DockedEditorTitleBar *>(DockArea->titleBar());
         connect(titleBar, &DockedEditorTitleBar::doubleClicked, this, &DockedEditor::titleBarDoubleClicked);
 
@@ -132,6 +135,23 @@ void DockedEditor::updateTabFonts()
                 applyTabFont(dockWidget);
         }
     }
+}
+
+void DockedEditor::updateTabWrapping()
+{
+    for (auto editor : editors()) {
+        if (!editor)
+            continue;
+        if (auto dockWidget = qobject_cast<ads::CDockWidget *>(editor->parentWidget())) {
+            auto tab = dockWidget->tabWidget();
+            tab->setElideMode(settings->wrapTabs() ? Qt::ElideRight : Qt::ElideNone);
+            // ADS does not restore the full displayed text when eliding is disabled.
+            tab->setText(tab->text());
+            applyTabFont(dockWidget);
+        }
+    }
+    for (int i = 0; i < dockManager->dockAreaCount(); ++i)
+        dockManager->dockArea(i)->titleBar()->tabBar()->setTabsWrapping(settings->wrapTabs());
 }
 
 void DockedEditor::updateTabTitles(const ScintillaNext *excludedEditor)
@@ -261,8 +281,9 @@ void DockedEditor::addEditor(ScintillaNext *editor)
     // Create the dock widget for the editor
     ads::CDockWidget *dockWidget = dockManager->createDockWidget(editor->getName());
 
-    // Disable elide, elided file names not readable when lots of files opened
-    dockWidget->tabWidget()->setElideMode(Qt::ElideNone);
+    // Wrapped rows retain natural widths; only titles wider than a row elide.
+    dockWidget->tabWidget()->setElideMode(settings->wrapTabs() ? Qt::ElideRight : Qt::ElideNone);
+    dockWidget->tabWidget()->setText(dockWidget->tabWidget()->text());
     applyTabFont(dockWidget);
 
     // We need a unique object name. Can't use the name or file path so use a uuid

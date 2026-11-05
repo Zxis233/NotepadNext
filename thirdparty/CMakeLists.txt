@@ -1,13 +1,6 @@
 include(${CMAKE_SOURCE_DIR}/cmake/CPM.cmake)
 
-CPMAddPackage(
-    NAME ads
-    GITHUB_REPOSITORY githubuser0xFFFF/Qt-Advanced-Docking-System
-    GIT_TAG v5.1.1
-    OPTIONS
-        "BUILD_STATIC ON"
-        "BUILD_EXAMPLES OFF"
-)
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/Ads.cmake")
 
 CPMAddPackage(
     NAME QSimpleUpdater

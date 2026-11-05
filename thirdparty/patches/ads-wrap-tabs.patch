@@ -1,0 +1,384 @@
+diff --git a/src/DockAreaTabBar.cpp b/src/DockAreaTabBar.cpp
+index ee5999a..09e496d 100644
+--- a/src/DockAreaTabBar.cpp
++++ b/src/DockAreaTabBar.cpp
+@@ -41,10 +41,12 @@
+ 
+ #include "FloatingDockContainer.h"
+ #include "DockAreaWidget.h"
++#include "DockAreaTitleBar.h"
+ #include "DockOverlay.h"
+ #include "DockManager.h"
+ #include "DockWidget.h"
+ #include "DockWidgetTab.h"
++#include "WrappingTabLayout.h"
+ 
+ #include <iostream>
+ 
+@@ -58,9 +60,13 @@ struct DockAreaTabBarPrivate
+ {
+ 	CDockAreaTabBar* _this;
+ 	CDockAreaWidget* DockArea;
+-	QWidget* TabsContainerWidget;
+-	QBoxLayout* TabsLayout;
++	QWidget* TabsContainerWidget = nullptr;
++	WrappingTabLayout* TabsLayout = nullptr;
+ 	int CurrentIndex = -1;
++	bool GeometryUpdatePending = false;
++	QSize LastWrappingSizeHint;
++	int UnwrappedMinimumHeight = 0;
++	int UnwrappedMaximumHeight = QWIDGETSIZE_MAX;
+ 
+ 	/**
+ 	 * Private data constructor
+@@ -142,12 +148,13 @@ CDockAreaTabBar::CDockAreaTabBar(CDockAreaWidget* parent) :
+ 	d->TabsContainerWidget = new QWidget();
+ 	d->TabsContainerWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+ 	d->TabsContainerWidget->setObjectName("tabsContainerWidget");
+-	d->TabsLayout = new QBoxLayout(QBoxLayout::LeftToRight);
++	d->TabsLayout = new WrappingTabLayout();
+ 	d->TabsLayout->setContentsMargins(0, 0, 0, 0);
+ 	d->TabsLayout->setSpacing(0);
+ 	d->TabsLayout->addStretch(1);
+ 	d->TabsContainerWidget->setLayout(d->TabsLayout);
+ 	setWidget(d->TabsContainerWidget);
++	d->DockArea->installEventFilter(this);
+ 
+     setFocusPolicy(Qt::NoFocus);
+ }
+@@ -163,7 +170,104 @@ CDockAreaTabBar::~CDockAreaTabBar()
+ //============================================================================
+ void CDockAreaTabBar::wheelEvent(QWheelEvent* Event)
+ {
+-    QCoreApplication::sendEvent(horizontalScrollBar(), Event);
++    QCoreApplication::sendEvent(tabsWrapping() ? verticalScrollBar() : horizontalScrollBar(), Event);
++}
++
++//============================================================================
++void CDockAreaTabBar::setTabsWrapping(bool Enabled)
++{
++	if (Enabled == tabsWrapping())
++	{
++		return;
++	}
++	if (Enabled)
++	{
++		d->UnwrappedMinimumHeight = minimumHeight();
++		d->UnwrappedMaximumHeight = maximumHeight();
++	}
++	else
++	{
++		setMinimumHeight(d->UnwrappedMinimumHeight);
++		setMaximumHeight(d->UnwrappedMaximumHeight);
++	}
++	d->TabsLayout->setWrapping(Enabled);
++	auto Policy = sizePolicy();
++	Policy.setHorizontalPolicy(Enabled ? QSizePolicy::Expanding : QSizePolicy::Maximum);
++	Policy.setHeightForWidth(Enabled);
++	setSizePolicy(Policy);
++	// The title bar has an expanding spacer. Give wrapped tabs the available
++	// width instead of splitting it between the tab bar and that spacer.
++	if (parentWidget() == d->DockArea->titleBar())
++	{
++		if (auto Layout = qobject_cast<QBoxLayout*>(parentWidget()->layout()))
++		{
++			Layout->setStretch(Layout->indexOf(this), Enabled ? 1 : 0);
++		}
++	}
++	setVerticalScrollBarPolicy(Enabled ? Qt::ScrollBarAsNeeded : Qt::ScrollBarAlwaysOff);
++	horizontalScrollBar()->setValue(0);
++	verticalScrollBar()->setValue(0);
++	d->updateTabs();
++	updateGeometry();
++	d->LastWrappingSizeHint = QSize();
++	updateWrappingGeometry();
++}
++
++//============================================================================
++bool CDockAreaTabBar::tabsWrapping() const
++{
++	return d->TabsLayout && d->TabsLayout->isWrapping();
++}
++
++//============================================================================
++void CDockAreaTabBar::updateWrappingGeometry()
++{
++	if (!tabsWrapping() || d->GeometryUpdatePending)
++	{
++		return;
++	}
++	d->GeometryUpdatePending = true;
++	QTimer::singleShot(0, this, [this] {
++		if (!tabsWrapping())
++		{
++			d->GeometryUpdatePending = false;
++			return;
++		}
++		// Refresh scroll ranges even if the viewport stays the same size (for
++		// example, a renamed title adds a row while the bar is height-limited).
++		setWidgetResizable(true);
++		const auto Hint = sizeHint();
++		// ADS gives the surrounding title bar a Fixed vertical size policy.
++		// Synchronize its child's actual height as rows grow or shrink; a
++		// width-dependent sizeHint alone can leave the parent's old HFW cached.
++		if (minimumHeight() != Hint.height() || maximumHeight() != Hint.height())
++		{
++			setFixedHeight(Hint.height());
++			// Also invalidate the title bar's item in the outer dock layout.
++			d->DockArea->titleBar()->updateGeometry();
++		}
++		if (Hint != d->LastWrappingSizeHint)
++		{
++			d->LastWrappingSizeHint = Hint;
++			updateGeometry();
++		}
++		if (auto Tab = currentTab())
++		{
++			ensureWidgetVisible(Tab, 0, 0);
++		}
++		d->GeometryUpdatePending = false;
++	});
++}
++
++//============================================================================
++bool CDockAreaTabBar::viewportEvent(QEvent* Event)
++{
++	const bool Result = Super::viewportEvent(Event);
++	if (Event->type() == QEvent::Resize)
++	{
++		updateWrappingGeometry();
++	}
++	return Result;
+ }
+ 
+ //============================================================================
+@@ -368,6 +472,26 @@ void CDockAreaTabBar::onTabWidgetMoved(const QPoint& GlobalPos)
+ 	}
+ 
+ 	int fromIndex = d->TabsLayout->indexOf(MovingTab);
++	if (tabsWrapping())
++	{
++		// Use layout rectangles, not the dragged widget's temporary position.
++		int toIndex = d->TabsLayout->insertionIndexAt(d->TabsContainerWidget->mapFromGlobal(GlobalPos));
++		if (toIndex > fromIndex)
++		{
++			--toIndex;
++		}
++		toIndex = qBound(0, toIndex, count() - 1);
++		if (toIndex != fromIndex)
++		{
++			d->TabsLayout->removeWidget(MovingTab);
++			d->TabsLayout->insertWidget(toIndex, MovingTab);
++			Q_EMIT tabMoved(fromIndex, toIndex);
++			setCurrentIndex(toIndex);
++		}
++		d->TabsLayout->invalidate();
++		updateWrappingGeometry();
++		return;
++	}
+ 	auto MousePos = mapFromGlobal(GlobalPos);
+ 	MousePos.rx() = qMax(0, MousePos.x());
+ 	MousePos.rx() = qMin(width(), MousePos.x());
+@@ -429,6 +553,13 @@ void CDockAreaTabBar::closeTab(int Index)
+ bool CDockAreaTabBar::eventFilter(QObject *watched, QEvent *event)
+ {
+ 	bool Result = Super::eventFilter(watched, event);
++	if ((watched == d->DockArea && event->type() == QEvent::Resize)
++		|| (watched == d->TabsContainerWidget
++			&& (event->type() == QEvent::LayoutRequest || event->type() == QEvent::Resize
++				|| event->type() == QEvent::StyleChange || event->type() == QEvent::FontChange)))
++	{
++		updateWrappingGeometry();
++	}
+ 	CDockWidgetTab* Tab = qobject_cast<CDockWidgetTab*>(watched);
+ 	if (!Tab)
+ 	{
+@@ -458,6 +589,7 @@ bool CDockAreaTabBar::eventFilter(QObject *watched, QEvent *event)
+     	if (Tab->dragState() == DraggingInactive)
+     	{
+     		wheelEvent((QWheelEvent* )event);
++			return true;
+     	}
+         break;
+ 
+@@ -484,7 +616,7 @@ bool CDockAreaTabBar::isTabOpen(int Index) const
+ //===========================================================================
+ QSize CDockAreaTabBar::minimumSizeHint() const
+ {
+-	QSize Size = sizeHint();
++	QSize Size = tabsWrapping() ? d->TabsLayout->minimumSize() : sizeHint();
+ 	Size.setWidth(10);
+ 	return Size;
+ }
+@@ -493,17 +625,51 @@ QSize CDockAreaTabBar::minimumSizeHint() const
+ //===========================================================================
+ QSize CDockAreaTabBar::sizeHint() const
+ {
++	if (tabsWrapping())
++	{
++		return QSize(d->TabsLayout->minimumSize().width(), heightForWidth(width()));
++	}
+ 	return d->TabsContainerWidget->sizeHint();
+ }
+ 
++//============================================================================
++int CDockAreaTabBar::heightForWidth(int Width) const
++{
++	if (!tabsWrapping())
++	{
++		return Super::heightForWidth(Width);
++	}
++	// Let rows grow naturally, but keep at least half the area for the editor.
++	const int Frame = 2 * frameWidth();
++	const int Limit = qMax(d->TabsLayout->minimumSize().height() + Frame, d->DockArea->height() / 2);
++	int ContentWidth = qMax(1, Width - Frame);
++	int Height = d->TabsLayout->heightForWidth(ContentWidth) + Frame;
++	if (Height > Limit)
++	{
++		ContentWidth = qMax(1, ContentWidth - verticalScrollBar()->sizeHint().width());
++		Height = d->TabsLayout->heightForWidth(ContentWidth) + Frame;
++	}
++	return qMin(Height, Limit);
++}
++
+ 
+ //===========================================================================
+ int CDockAreaTabBar::tabAt(const QPoint& Pos) const
+ {
+-	if (!isVisible())
++	if (!isVisible() || !count())
+ 	{
+ 		return TabInvalidIndex;
+ 	}
++	if (tabsWrapping())
++	{
++		const auto ContentPos = d->TabsContainerWidget->mapFrom(this, Pos);
++		const int Index = d->TabsLayout->tabAt(ContentPos);
++		if (Index >= 0)
++		{
++			return Index;
++		}
++		return d->TabsLayout->insertionIndexAt(ContentPos) == 0 ? -1 : count();
++	}
+ 
+ 	if (Pos.x() < tab(0)->geometry().x())
+ 	{
+@@ -525,6 +691,11 @@ int CDockAreaTabBar::tabAt(const QPoint& Pos) const
+ //===========================================================================
+ int CDockAreaTabBar::tabInsertIndexAt(const QPoint& Pos) const
+ {
++	if (tabsWrapping())
++	{
++		return isVisible() ? d->TabsLayout->insertionIndexAt(d->TabsContainerWidget->mapFrom(this, Pos))
++			: TabDefaultInsertIndex;
++	}
+ 	int Index = tabAt(Pos);
+ 	if (Index == TabInvalidIndex)
+ 	{
+@@ -540,6 +711,10 @@ int CDockAreaTabBar::tabInsertIndexAt(const QPoint& Pos) const
+ //===========================================================================
+ bool CDockAreaTabBar::areTabsOverflowing() const
+ {
++	if (tabsWrapping())
++	{
++		return verticalScrollBar()->maximum() > 0;
++	}
+ 	return d->TabsContainerWidget->width() > width();
+ }
+ 
+diff --git a/src/DockAreaTabBar.h b/src/DockAreaTabBar.h
+index 60557fe..ce08903 100644
+--- a/src/DockAreaTabBar.h
++++ b/src/DockAreaTabBar.h
+@@ -63,9 +63,11 @@ private Q_SLOTS:
+ 	void onTabCloseRequested();
+ 	void onCloseOtherTabsRequested();
+ 	void onTabWidgetMoved(const QPoint& GlobalPos);
++	void updateWrappingGeometry();
+ 
+ protected:
+     virtual void wheelEvent(QWheelEvent* Event) override;
++	bool viewportEvent(QEvent* Event) override;
+ 
+ public:
+ 	using Super = QScrollArea;
+@@ -151,6 +153,11 @@ public:
+ 	 * internal viewport.
+ 	 */
+ 	virtual QSize sizeHint() const override;
++	int heightForWidth(int Width) const override;
++
++	/** Enable automatic rows while retaining the logical tab order. */
++	void setTabsWrapping(bool Enabled);
++	bool tabsWrapping() const;
+ 
+ 	/**
+ 	 * This function returns true, if the tabs need more space than the size
+diff --git a/src/DockWidgetTab.cpp b/src/DockWidgetTab.cpp
+index 3b6a291..ab2ac7a 100644
+--- a/src/DockWidgetTab.cpp
++++ b/src/DockWidgetTab.cpp
+@@ -47,6 +47,8 @@
+ #include "ads_globals.h"
+ #include "DockWidget.h"
+ #include "DockAreaWidget.h"
++#include "DockAreaTabBar.h"
++#include "DockAreaTitleBar.h"
+ #include "FloatingDockContainer.h"
+ #include "DockOverlay.h"
+ #include "DockManager.h"
+@@ -296,10 +298,17 @@ void DockWidgetTabPrivate::moveTab(QMouseEvent* ev)
+ {
+     ev->accept();
+     QPoint Distance = internal::globalPositionOf(ev) - GlobalDragStartMousePosition;
+-    Distance.setY(0);
++    const bool Wrapping = DockArea && DockArea->titleBar()->tabBar()->tabsWrapping();
++    if (!Wrapping)
++    {
++        Distance.setY(0);
++    }
+     auto TargetPos = Distance + TabDragStartPosition;
+-    TargetPos.rx() = qMax(TargetPos.x(), 0);
+-    TargetPos.rx() = qMin(_this->parentWidget()->rect().right() - _this->width() + 1, TargetPos.rx());
++    TargetPos.setX(qBound(0, TargetPos.x(), qMax(0, _this->parentWidget()->width() - _this->width())));
++    if (Wrapping)
++    {
++        TargetPos.setY(qBound(0, TargetPos.y(), qMax(0, _this->parentWidget()->height() - _this->height())));
++    }
+     _this->move(TargetPos);
+     _this->raise();
+ }
+@@ -552,7 +561,17 @@ void CDockWidgetTab::mouseMoveEvent(QMouseEvent* ev)
+     bool MouseOutsideBar = (MappedPos.x() < 0) || (MappedPos.x() > parentWidget()->rect().right());
+     // Maybe a fixed drag distance is better here ?
+     int DragDistanceY = qAbs(d->GlobalDragStartMousePosition.y() - internal::globalPositionOf(ev).y());
+-    if (DragDistanceY >= CDockManager::startDragDistance() || MouseOutsideBar)
++    bool StartDockDrag = DragDistanceY >= CDockManager::startDragDistance() || MouseOutsideBar;
++    if (d->DockArea->titleBar()->tabBar()->tabsWrapping())
++    {
++        // Moving between rows is a reorder. Docking starts only after leaving
++        // the whole viewport, including its currently visible rows.
++        auto Viewport = d->DockArea->titleBar()->tabBar()->viewport();
++        StartDockDrag = !Viewport->rect().adjusted(-QApplication::startDragDistance(),
++            -QApplication::startDragDistance(), QApplication::startDragDistance(),
++            QApplication::startDragDistance()).contains(Viewport->mapFromGlobal(internal::globalPositionOf(ev)));
++    }
++    if (StartDockDrag)
+ 	{
+     	// Floating is only allowed for widgets that are floatable
+ 		// We can create the drag preview if the widget is movable.
+@@ -796,6 +815,14 @@ void CDockWidgetTab::setVisible(bool visible)
+ void CDockWidgetTab::setText(const QString& title)
+ {
+ 	d->TitleLabel->setText(title);
++#ifndef QT_NO_TOOLTIP
++	// Eliding labels set their own title tooltip. Keep an explicit tab tooltip
++	// (the full file path in Notepad Next) when the title changes.
++	if (!toolTip().isEmpty())
++	{
++		d->TitleLabel->setToolTip(toolTip());
++	}
++#endif
+ }
+ 
+ 
