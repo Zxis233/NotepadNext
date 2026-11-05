@@ -9,3 +9,7 @@ ads--CDockWidgetTab {
 ads--CDockWidgetTab[activeTab="true"] {
     border-top-color: #ff9800;
 }
+
+ads--CDockManager[documentTabsDark="true"] ads--CDockWidgetTab[activeTab="false"] ads--CElidingLabel {
+    color: #b1bac4;
+}

@@ -9,6 +9,7 @@
 #include <QDebug>
 #include <QEvent>
 #include <QFile>
+#include <QVariant>
 
 EditorDockManager::EditorDockManager(QWidget *parent) : ads::CDockManager(parent)
 {
@@ -33,6 +34,8 @@ bool EditorDockManager::eventFilter(QObject *watched, QEvent *event)
 
 void EditorDockManager::applyTabStyle()
 {
+    // Scope title contrast to the same dark/light choice that ADS uses.
+    setProperty("documentTabsDark", isDesiredStylesheetDark());
     const QString current = styleSheet();
     // Palette notifications can leave the ADS theme unchanged. Do not append
     // duplicate overrides or cause an unnecessary style/layout refresh.
